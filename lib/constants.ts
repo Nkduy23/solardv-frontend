@@ -15,3 +15,14 @@ export const COMPANY_INFO = {
   phone: "0985 821 820",
   email: "contact@solardv.vn",
 };
+
+export const ADMIN_NAV_LINKS = [
+  { label: "Dashboard", href: "/admin/dashboard", icon: "LayoutDashboard" },
+  { label: "Đăng ký tư vấn", href: "/admin/consultations", icon: "Inbox" },
+  { label: "Dịch vụ", href: "/admin/services", icon: "Wrench" },
+  { label: "Sản phẩm", href: "/admin/products", icon: "Package" },
+  { label: "Dự án", href: "/admin/projects", icon: "Building2" },
+  { label: "Bài viết", href: "/admin/posts", icon: "Newspaper" },
+  { label: "Thư viện ảnh", href: "/admin/gallery", icon: "Images" },
+  { label: "Cài đặt", href: "/admin/settings", icon: "Settings" },
+] as const;
