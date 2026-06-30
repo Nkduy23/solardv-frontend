@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0b1220;
+  --color-navy-light: #1b2a4a;
+  --color-sunrise-amber: #f5a623;
+  --color-sunrise-copper: #c9742c;
+  --color-teal: #2dd4bf;
+  --color-paper: #f7f4ed;
+  --color-ink: #0b1220;
+
+  --font-display: var(--space-grotesk), sans-serif;
+  --font-body: var(--be-vietnam-pro), sans-serif;
+  --font-mono: var(--jetbrains-mono), monospace;
+
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-drift: drift 6s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-paper text-ink font-body antialiased;
+}
+
+/* Nhãn nhỏ kiểu kỹ thuật, dùng trước các heading section */
+.eyebrow {
+  @apply font-mono text-xs uppercase tracking-[0.2em] text-sunrise-amber;
+}
+
+::selection {
+  background-color: var(--color-sunrise-amber);
+  color: var(--color-navy);
+}
+
+/* Tôn trọng prefers-reduced-motion: tắt animation cho người dùng nhạy cảm chuyển động */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
