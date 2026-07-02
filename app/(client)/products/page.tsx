@@ -6,7 +6,7 @@ import { productsMock } from "@/mocks/products.mock";
 import { Product } from "@/types/product";
 import { PageHeader } from "@/components/sections/PageHeader";
 import { ProductCard } from "@/components/sections/ProductCard";
-import { StaggerList } from "@/components/motion/StaggerList";
+import { StaggerItem, StaggerList } from "@/components/motion/StaggerList";
 import { Container } from "@/components/layout/Container";
 import { cn } from "@/lib/utils";
 
@@ -59,9 +59,9 @@ export default function ProductsPage() {
           ) : (
             <StaggerList key={active} className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((product) => (
-                <StaggerList.Item key={product.id}>
+                <StaggerItem key={product.id}>
                   <ProductCard product={product} variant="light" />
-                </StaggerList.Item>
+                </StaggerItem>
               ))}
             </StaggerList>
           )}
