@@ -3,7 +3,7 @@ import { getPosts } from "@/lib/api/posts.api";
 import { postsMock } from "@/mocks/posts.mock";
 import { PageHeader } from "@/components/sections/PageHeader";
 import { ScrollReveal } from "@/components/motion/ScrollReveal";
-import { StaggerItem, StaggerList } from "@/components/motion/StaggerList";
+import { StaggerList, StaggerItem } from "@/components/motion/StaggerList";
 import { Container } from "@/components/layout/Container";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
