@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Post } from "@/types/post";
+import * as api from "@/lib/api/posts.api";
 import { postsMock } from "@/mocks/posts.mock";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { Modal } from "@/components/admin/Modal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
-const EMPTY: Omit<Post, "id" | "publishedAt"> = { title: "", slug: "", excerpt: "", isPublished: false };
+const EMPTY = { title: "", slug: "", excerpt: "", isPublished: false };
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -20,11 +23,24 @@ function formatDate(iso: string | null) {
 }
 
 export default function AdminPostsPage() {
-  const [data, setData] = useState<Post[]>(postsMock);
+  const [data, setData] = useState<Post[]>(USE_MOCK ? postsMock : []);
+  const [loading, setLoading] = useState(!USE_MOCK);
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Post | null>(null);
-  const [form, setForm] = useState<Omit<Post, "id" | "publishedAt">>(EMPTY);
+  const [form, setForm] = useState(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<Post | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function load() {
+    if (USE_MOCK) return;
+    setLoading(true);
+    const res = await api.getPosts({ limit: 100 });
+    setData(res.data);
+    setLoading(false);
+  }
+  useEffect(() => {
+    load();
+  }, []);
 
   function openCreate() {
     setEditTarget(null);
@@ -33,35 +49,41 @@ export default function AdminPostsPage() {
   }
   function openEdit(item: Post) {
     setEditTarget(item);
-    setForm({ title: item.title, slug: item.slug, excerpt: item.excerpt, isPublished: item.isPublished });
+    setForm({ title: item.title, slug: item.slug, excerpt: item.excerpt ?? "", isPublished: item.isPublished });
     setModalOpen(true);
   }
-  function handleSave() {
-    if (editTarget) {
-      setData((prev) => prev.map((p) => (p.id === editTarget.id ? { ...editTarget, ...form, publishedAt: form.isPublished ? (editTarget.publishedAt ?? new Date().toISOString()) : null } : p)));
-    } else {
-      setData((prev) => [...prev, { id: `p-${Date.now()}`, ...form, publishedAt: form.isPublished ? new Date().toISOString() : null }]);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      if (USE_MOCK) {
+        if (editTarget) setData((prev) => prev.map((p) => (p.id === editTarget.id ? { ...editTarget, ...form } : p)));
+        else setData((prev) => [...prev, { id: `p-${Date.now()}`, ...form, publishedAt: form.isPublished ? new Date().toISOString() : null }]);
+      } else {
+        if (editTarget) {
+          const updated = await api.updatePost(editTarget.id, form);
+          setData((prev) => prev.map((p) => (p.id === editTarget.id ? updated : p)));
+        } else {
+          const created = await api.createPost(form);
+          setData((prev) => [...prev, created]);
+        }
+      }
+      setModalOpen(false);
+    } finally {
+      setSaving(false);
     }
-    setModalOpen(false);
   }
-  function handleDelete() {
+
+  async function handleDelete() {
     if (!deleteTarget) return;
+    if (!USE_MOCK) await api.deletePost(deleteTarget.id);
     setData((prev) => prev.filter((p) => p.id !== deleteTarget.id));
     setDeleteTarget(null);
   }
 
   const columns = [
-    {
-      key: "title",
-      header: "Tiêu đề",
-      render: (p: Post) => <p className="font-medium text-navy">{p.title}</p>,
-    },
-    {
-      key: "excerpt",
-      header: "Tóm tắt",
-      className: "max-w-xs",
-      render: (p: Post) => <span className="line-clamp-1 text-sm text-navy/60">{p.excerpt}</span>,
-    },
+    { key: "title", header: "Tiêu đề", render: (p: Post) => <p className="font-medium text-navy">{p.title}</p> },
+    { key: "excerpt", header: "Tóm tắt", className: "max-w-xs", render: (p: Post) => <span className="line-clamp-1 text-sm text-navy/60">{p.excerpt}</span> },
     {
       key: "isPublished",
       header: "Trạng thái",
@@ -71,20 +93,21 @@ export default function AdminPostsPage() {
         </span>
       ),
     },
-    {
-      key: "publishedAt",
-      header: "Ngày đăng",
-      render: (p: Post) => <span className="text-sm text-navy/50">{formatDate(p.publishedAt)}</span>,
-    },
+    { key: "publishedAt", header: "Ngày đăng", render: (p: Post) => <span className="text-sm text-navy/50">{formatDate(p.publishedAt)}</span> },
     {
       key: "actions",
       header: "",
       render: (p: Post) => (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex justify-end gap-2">
+          <Link href={`/admin/posts/${p.id}`}>
+            <Button variant="ghost" className="px-3 py-2 text-xs">
+              <ExternalLink size={13} /> Mở
+            </Button>
+          </Link>
           <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => openEdit(p)}>
             <Pencil size={13} /> Sửa
           </Button>
-          <Button variant="ghost" className="px-3 py-2 text-xs text-red-500 hover:text-red-700" onClick={() => setDeleteTarget(p)}>
+          <Button variant="ghost" className="px-3 py-2 text-xs text-red-500" onClick={() => setDeleteTarget(p)}>
             <Trash2 size={13} /> Xoá
           </Button>
         </div>
@@ -100,17 +123,17 @@ export default function AdminPostsPage() {
         action="Viết bài mới"
         onAction={openCreate}
       />
-      <DataTable columns={columns} data={data} keyExtractor={(p) => p.id} />
+      {loading ? <div className="h-64 animate-pulse rounded-2xl bg-navy/5" /> : <DataTable columns={columns} data={data} keyExtractor={(p) => p.id} />}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Chỉnh sửa bài viết" : "Bài viết mới"}>
         <div className="space-y-4">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-navy/60">Tiêu đề</label>
-            <input className={inputClass} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Tiêu đề bài viết..." />
+            <input className={inputClass} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-navy/60">Slug</label>
-            <input className={inputClass} value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} placeholder="tieu-de-bai-viet" />
+            <input className={inputClass} value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-navy/60">Tóm tắt</label>
@@ -123,13 +146,12 @@ export default function AdminPostsPage() {
             <span className="text-sm text-navy/70">Đăng ngay</span>
             <input type="checkbox" className="sr-only" checked={form.isPublished} onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked }))} />
           </label>
-          <p className="text-xs text-navy/40">Rich text editor (nội dung đầy đủ) sẽ tích hợp khi nối backend.</p>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" onClick={() => setModalOpen(false)}>
               Huỷ
             </Button>
-            <Button variant="primary" onClick={handleSave} disabled={!form.title}>
-              Lưu
+            <Button variant="primary" onClick={handleSave} disabled={!form.title || saving}>
+              {saving ? "Đang lưu..." : "Lưu"}
             </Button>
           </div>
         </div>

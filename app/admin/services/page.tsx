@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Service } from "@/types/service";
+import * as api from "@/lib/api/services.api";
 import { servicesMock } from "@/mocks/services.mock";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTable } from "@/components/admin/DataTable";
@@ -10,65 +11,81 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2 } from "lucide-react";
 
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
-
-const EMPTY: Omit<Service, "id"> = { title: "", slug: "", summary: "", detail: "" };
+const EMPTY = { title: "", slug: "", summary: "", detail: "" };
 
 export default function AdminServicesPage() {
-  const [data, setData] = useState<Service[]>(servicesMock);
+  const [data, setData] = useState<Service[]>(USE_MOCK ? servicesMock : []);
+  const [loading, setLoading] = useState(!USE_MOCK);
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Service | null>(null);
-  const [form, setForm] = useState<Omit<Service, "id">>(EMPTY);
+  const [form, setForm] = useState(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<Service | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function load() {
+    if (USE_MOCK) return;
+    setLoading(true);
+    const res = await api.getServices({ limit: 100 });
+    setData(res.data);
+    setLoading(false);
+  }
+  useEffect(() => {
+    load();
+  }, []);
 
   function openCreate() {
     setEditTarget(null);
     setForm(EMPTY);
     setModalOpen(true);
   }
-
   function openEdit(item: Service) {
     setEditTarget(item);
-    setForm({ title: item.title, slug: item.slug, summary: item.summary, detail: item.detail });
+    setForm({ title: item.title, slug: item.slug, summary: item.summary ?? "", detail: item.detail ?? "" });
     setModalOpen(true);
   }
 
-  function handleSave() {
-    if (editTarget) {
-      setData((prev) => prev.map((s) => (s.id === editTarget.id ? { ...editTarget, ...form } : s)));
-    } else {
-      setData((prev) => [...prev, { id: `svc-${Date.now()}`, ...form }]);
+  async function handleSave() {
+    setSaving(true);
+    try {
+      if (USE_MOCK) {
+        if (editTarget) setData((prev) => prev.map((s) => (s.id === editTarget.id ? { ...editTarget, ...form } : s)));
+        else setData((prev) => [...prev, { id: `svc-${Date.now()}`, ...form }]);
+      } else {
+        if (editTarget) {
+          const updated = await api.updateService(editTarget.id, form);
+          setData((prev) => prev.map((s) => (s.id === editTarget.id ? updated : s)));
+        } else {
+          const created = await api.createService(form);
+          setData((prev) => [...prev, created]);
+        }
+      }
+      setModalOpen(false);
+    } finally {
+      setSaving(false);
     }
-    setModalOpen(false);
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteTarget) return;
+    if (!USE_MOCK) await api.deleteService(deleteTarget.id);
     setData((prev) => prev.filter((s) => s.id !== deleteTarget.id));
     setDeleteTarget(null);
   }
 
   const columns = [
-    {
-      key: "title",
-      header: "Tên dịch vụ",
-      render: (s: Service) => <p className="font-medium text-navy">{s.title}</p>,
-    },
-    {
-      key: "summary",
-      header: "Mô tả ngắn",
-      className: "max-w-xs",
-      render: (s: Service) => <span className="line-clamp-1 text-sm text-navy/60">{s.summary}</span>,
-    },
+    { key: "title", header: "Tên dịch vụ", render: (s: Service) => <p className="font-medium text-navy">{s.title}</p> },
+    { key: "summary", header: "Mô tả ngắn", className: "max-w-xs", render: (s: Service) => <span className="line-clamp-1 text-sm text-navy/60">{s.summary}</span> },
     {
       key: "actions",
       header: "",
       render: (s: Service) => (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex justify-end gap-2">
           <Button variant="ghost" className="px-3 py-2 text-xs" onClick={() => openEdit(s)}>
             <Pencil size={13} /> Sửa
           </Button>
-          <Button variant="ghost" className="px-3 py-2 text-xs text-red-500 hover:text-red-700" onClick={() => setDeleteTarget(s)}>
+          <Button variant="ghost" className="px-3 py-2 text-xs text-red-500" onClick={() => setDeleteTarget(s)}>
             <Trash2 size={13} /> Xoá
           </Button>
         </div>
@@ -79,19 +96,22 @@ export default function AdminServicesPage() {
   return (
     <>
       <AdminPageHeader title="Quản lý dịch vụ" description={`${data.length} dịch vụ`} action="Thêm dịch vụ" onAction={openCreate} />
-      <DataTable columns={columns} data={data} keyExtractor={(s) => s.id} />
+      {loading ? <div className="h-64 animate-pulse rounded-2xl bg-navy/5" /> : <DataTable columns={columns} data={data} keyExtractor={(s) => s.id} />}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ mới"}>
         <div className="space-y-4">
-          {(["title", "slug", "summary", "detail"] as const).map((field) => (
-            <div key={field}>
-              <label className="mb-1.5 block text-xs font-medium capitalize text-navy/60">
-                {field === "title" ? "Tên dịch vụ" : field === "slug" ? "Slug (URL)" : field === "summary" ? "Mô tả ngắn" : "Mô tả chi tiết"}
-              </label>
-              {field === "detail" || field === "summary" ? (
-                <textarea rows={3} className={inputClass + " resize-none"} value={form[field] ?? ""} onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))} />
+          {[
+            { key: "title", label: "Tên dịch vụ", placeholder: "Lắp đặt điện mặt trời..." },
+            { key: "slug", label: "Slug", placeholder: "lap-dat-dien-mat-troi" },
+            { key: "summary", label: "Mô tả ngắn", placeholder: "Tóm tắt dịch vụ..." },
+            { key: "detail", label: "Mô tả chi tiết", placeholder: "Nội dung đầy đủ..." },
+          ].map(({ key, label, placeholder }) => (
+            <div key={key}>
+              <label className="mb-1.5 block text-xs font-medium text-navy/60">{label}</label>
+              {key === "detail" || key === "summary" ? (
+                <textarea rows={3} className={inputClass + " resize-none"} placeholder={placeholder} value={(form as any)[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
               ) : (
-                <input className={inputClass} value={form[field]} onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))} />
+                <input className={inputClass} placeholder={placeholder} value={(form as any)[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
               )}
             </div>
           ))}
@@ -99,8 +119,8 @@ export default function AdminServicesPage() {
             <Button variant="ghost" onClick={() => setModalOpen(false)}>
               Huỷ
             </Button>
-            <Button variant="primary" onClick={handleSave} disabled={!form.title}>
-              Lưu
+            <Button variant="primary" onClick={handleSave} disabled={!form.title || saving}>
+              {saving ? "Đang lưu..." : "Lưu"}
             </Button>
           </div>
         </div>
