@@ -3,8 +3,11 @@ import { ScrollReveal } from "@/components/motion/ScrollReveal";
 import { StaggerItem, StaggerList } from "@/components/motion/StaggerList";
 import { ProductCard } from "./ProductCard";
 import { Container } from "@/components/layout/Container";
+import { Product } from "@/types/product";
 
-export function ProductGrid() {
+export function ProductGrid({ products }: { products: Product[] }) {
+  if (products.length === 0) return null;
+
   return (
     <section className="relative py-28 text-paper">
       <Container>
@@ -14,7 +17,7 @@ export function ProductGrid() {
         </ScrollReveal>
 
         <StaggerList className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {productsMock.map((product) => (
+          {products.slice(0, 6).map((product) => (
             <StaggerItem key={product.id}>
               <ProductCard product={product} />
             </StaggerItem>

@@ -1,31 +1,27 @@
-"use client";
+import { getServices } from "@/lib/api/services.api";
+import { getProducts } from "@/lib/api/products.api";
+import { getPosts } from "@/lib/api/posts.api";
+import { getMediaFiles } from "@/lib/api/media.api";
+import { servicesMock } from "@/mocks/services.mock";
+import { productsMock } from "@/mocks/products.mock";
+import { HomeClient } from "@/components/sections/HomeClient";
 
-import { useRef } from "react";
-import { ParallaxBackground } from "@/components/motion/ParallaxBackground";
-import { HeroSection } from "@/components/sections/HeroSection";
-import { AboutSection } from "@/components/sections/AboutSection";
-import { ServicesSection } from "@/components/sections/ServicesSection";
-import { ProductGrid } from "@/components/sections/ProductGrid";
-import { CtaSection } from "@/components/sections/CtaSection";
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
-export default function HomePage() {
-  // targetRef bao trùm toàn bộ phần "Sunrise Scroll" (Hero -> trước CTA),
-  // CTA dùng nền sáng riêng nên nằm ngoài track.
-  const sunriseTrackRef = useRef<HTMLDivElement>(null);
+export default async function HomePage() {
+  const [services, products, posts, mediaFiles] = await Promise.all([
+    USE_MOCK ? Promise.resolve(servicesMock) : getServices({ limit: 6 }).then((r) => r.data),
+    USE_MOCK ? Promise.resolve(productsMock) : getProducts({ limit: 6 }).then((r) => r.data),
+    USE_MOCK ? Promise.resolve([]) : getPosts({ published: true, limit: 3 }).then((r) => r.data),
+    USE_MOCK ? Promise.resolve([]) : getMediaFiles("handover"),
+  ]);
 
-  return (
-    <>
-      <div ref={sunriseTrackRef} className="relative">
-        <ParallaxBackground targetRef={sunriseTrackRef} />
-        <HeroSection />
-        <AboutSection />
-        <ServicesSection />
-        <ProductGrid />
-      </div>
+  const images = mediaFiles.map((f) => ({
+    id: f.id,
+    url: f.url,
+    caption: f.caption,
+    category: f.category,
+  }));
 
-      <div className="bg-paper">
-        <CtaSection />
-      </div>
-    </>
-  );
+  return <HomeClient services={services} products={products} posts={posts} images={images} />;
 }
