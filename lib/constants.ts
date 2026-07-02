@@ -6,6 +6,7 @@ export const NAV_LINKS = [
   { label: "Dịch vụ", href: "/services" },
   { label: "Sản phẩm", href: "/products" },
   { label: "Dự án", href: "/projects" },
+  { label: "Tin tức", href: "/news" },
   { label: "Liên hệ", href: "/contact" },
 ] as const;
 
