@@ -1,71 +1,81 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { uploadMedia, getMediaFiles, deleteMedia, MediaFile } from "@/lib/api/media.api";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Upload, X, Images } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface GalleryItem {
-  id: string;
-  name: string;
-  /** URL tạm (object URL từ FileReader) — thay bằng URL thật từ backend sau */
-  previewUrl: string;
-  category: "bàn giao" | "công trình" | "sản phẩm";
-}
-
-const CATEGORIES: GalleryItem["category"][] = ["bàn giao", "công trình", "sản phẩm"];
-
-// Mock: 6 ảnh placeholder
-const initialItems: GalleryItem[] = Array.from({ length: 6 }, (_, i) => ({
-  id: `img-${i + 1}`,
-  name: `Ảnh mẫu ${i + 1}`,
-  previewUrl: "",
-  category: CATEGORIES[i % 3],
-}));
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+const CATEGORIES = ["bàn giao", "công trình", "sản phẩm"] as const;
+type Category = (typeof CATEGORIES)[number] | "tất cả";
 
 export default function AdminGalleryPage() {
-  const [items, setItems] = useState<GalleryItem[]>(initialItems);
-  const [activeCategory, setActiveCategory] = useState<GalleryItem["category"] | "tất cả">("tất cả");
-  const [deleteTarget, setDeleteTarget] = useState<GalleryItem | null>(null);
+  const [items, setItems] = useState<MediaFile[]>([]);
+  const [activeCategory, setActiveCategory] = useState<Category>("tất cả");
+  const [deleteTarget, setDeleteTarget] = useState<MediaFile | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = activeCategory === "tất cả" ? items : items.filter((i) => i.category === activeCategory);
+  async function load() {
+    if (USE_MOCK) return;
+    const files = await getMediaFiles();
+    setItems(files);
+  }
 
-  function addFiles(files: FileList | null) {
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function addFiles(files: FileList | null) {
     if (!files) return;
-    const newItems: GalleryItem[] = Array.from(files).map((file) => ({
-      id: `img-${Date.now()}-${Math.random()}`,
-      name: file.name,
-      previewUrl: URL.createObjectURL(file),
-      category: "bàn giao",
-    }));
-    setItems((prev) => [...prev, ...newItems]);
+    if (USE_MOCK) {
+      const local = Array.from(files).map(
+        (f) =>
+          ({
+            id: `local-${Date.now()}-${Math.random()}`,
+            originalName: f.name,
+            filename: f.name,
+            url: URL.createObjectURL(f),
+            size: f.size,
+            mimetype: f.type,
+            category: "bàn giao",
+            createdAt: new Date().toISOString(),
+          }) as MediaFile,
+      );
+      setItems((prev) => [...prev, ...local]);
+      return;
+    }
+    setUploading(true);
+    try {
+      const uploaded = await Promise.all(Array.from(files).map((f) => uploadMedia(f, { category: "handover" })));
+      setItems((prev) => [...prev, ...uploaded]);
+    } finally {
+      setUploading(false);
+    }
   }
 
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragging(false);
-    addFiles(e.dataTransfer.files);
-  }
-
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteTarget) return;
+    if (!USE_MOCK) await deleteMedia(deleteTarget.id);
     setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
     setDeleteTarget(null);
   }
 
+  const filtered = activeCategory === "tất cả" ? items : items.filter((i) => i.category === activeCategory || (activeCategory === "bàn giao" && i.category === "handover"));
+
   return (
     <>
-      <AdminPageHeader title="Thư viện ảnh" description={`${items.length} ảnh · bàn giao, công trình, sản phẩm`} />
+      <AdminPageHeader title="Thư viện ảnh" description={`${items.length} ảnh`} />
 
-      {/* Upload dropzone */}
       <div
         className={cn(
           "mb-6 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-10 transition-colors",
           dragging ? "border-sunrise-amber bg-sunrise-amber/5" : "border-navy/15 hover:border-navy/30",
+          uploading && "pointer-events-none opacity-60",
         )}
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => {
@@ -73,19 +83,20 @@ export default function AdminGalleryPage() {
           setDragging(true);
         }}
         onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          addFiles(e.dataTransfer.files);
+        }}
       >
         <Upload size={28} className={cn("transition-colors", dragging ? "text-sunrise-amber" : "text-navy/30")} />
-        <div className="text-center">
-          <p className="text-sm font-medium text-navy/70">Kéo thả ảnh vào đây hoặc click để chọn</p>
-          <p className="mt-1 text-xs text-navy/40">PNG, JPG, WEBP — tối đa 10MB mỗi ảnh</p>
-        </div>
+        <p className="text-sm font-medium text-navy/70">{uploading ? "Đang upload..." : "Kéo thả ảnh hoặc click để chọn"}</p>
+        <p className="text-xs text-navy/40">PNG, JPG, WEBP — tối đa 10MB</p>
         <input ref={inputRef} type="file" accept="image/*" multiple className="sr-only" onChange={(e) => addFiles(e.target.files)} />
       </div>
 
-      {/* Filter tabs */}
       <div className="mb-5 flex flex-wrap gap-2">
-        {(["tất cả", ...CATEGORIES] as const).map((cat) => (
+        {(["tất cả", ...CATEGORIES] as Category[]).map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
@@ -113,18 +124,14 @@ export default function AdminGalleryPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2 }}
                 className="group relative aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-navy-light to-navy"
               >
-                {item.previewUrl && <img src={item.previewUrl} alt={item.name} className="absolute inset-0 h-full w-full object-cover" />}
+                {item.url && <img src={item.url} alt={item.originalName} className="absolute inset-0 h-full w-full object-cover" />}
                 <div className="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-navy/70 via-transparent to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
                   <button onClick={() => setDeleteTarget(item)} className="ml-auto flex size-7 items-center justify-center rounded-full bg-red-500/90 text-white">
                     <X size={13} />
                   </button>
-                  <div>
-                    <span className="rounded-full bg-paper/20 px-2 py-0.5 text-[10px] capitalize text-paper backdrop-blur-sm">{item.category}</span>
-                    <p className="mt-1 truncate text-xs text-paper/80">{item.name}</p>
-                  </div>
+                  <p className="truncate text-xs text-paper/80">{item.originalName}</p>
                 </div>
               </motion.div>
             ))}
@@ -135,7 +142,7 @@ export default function AdminGalleryPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Xoá ảnh?"
-        description={`Ảnh "${deleteTarget?.name}" sẽ bị xoá vĩnh viễn.`}
+        description={`Ảnh "${deleteTarget?.originalName}" sẽ bị xoá vĩnh viễn.`}
         confirmLabel="Xoá"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}

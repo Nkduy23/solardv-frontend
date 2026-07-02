@@ -1,17 +1,20 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Eye, Users, Inbox, TrendingUp } from "lucide-react";
+import { getAnalyticsOverview, getVisits } from "@/lib/api/analytics.api";
+import { getConsultations } from "@/lib/api/consultations.api";
 import { StatCard } from "@/components/admin/StatCard";
 import { VisitsChart } from "@/components/admin/VisitsChart";
 import { analyticsOverviewMock, visitsMock } from "@/mocks/analytics.mock";
 import { consultationsMock } from "@/mocks/consultations.mock";
+import { AnalyticsOverview, VisitPoint } from "@/types/analytics";
+import { Consultation } from "@/types/consultation";
 import { cn } from "@/lib/utils";
 
-const STATUS_LABEL: Record<string, string> = {
-  NEW: "Mới",
-  CONTACTED: "Đã liên hệ",
-  DONE: "Hoàn tất",
-  CANCELLED: "Đã huỷ",
-};
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
+const STATUS_LABEL: Record<string, string> = { NEW: "Mới", CONTACTED: "Đã liên hệ", DONE: "Hoàn tất", CANCELLED: "Đã huỷ" };
 const STATUS_COLOR: Record<string, string> = {
   NEW: "bg-sunrise-amber/15 text-sunrise-copper",
   CONTACTED: "bg-blue-100 text-blue-700",
@@ -20,18 +23,45 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function AdminDashboardPage() {
-  const o = analyticsOverviewMock;
+  const [overview, setOverview] = useState<AnalyticsOverview>(analyticsOverviewMock);
+  const [visits, setVisits] = useState<VisitPoint[]>(visitsMock);
+  const [consultations, setConsultations] = useState<Consultation[]>(consultationsMock);
+  const [loading, setLoading] = useState(!USE_MOCK);
+
+  useEffect(() => {
+    if (USE_MOCK) return;
+    Promise.all([getAnalyticsOverview(), getVisits({ groupBy: "day" }), getConsultations({ limit: 5 })])
+      .then(([ov, vs, cs]) => {
+        setOverview(ov);
+        setVisits(Array.isArray(vs) ? vs : []);
+        setConsultations(cs.data);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-28 animate-pulse rounded-2xl bg-navy/5" />
+          ))}
+        </div>
+        <div className="h-80 animate-pulse rounded-2xl bg-navy/5" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Lượt truy cập hôm nay" value={o.totalVisitsToday.toLocaleString("vi-VN")} icon={Eye} />
-        <StatCard label="Lượt truy cập tháng này" value={o.totalVisitsThisMonth.toLocaleString("vi-VN")} icon={Users} trend={{ positive: true, label: "+12% so với tháng trước" }} />
-        <StatCard label="Đăng ký tư vấn tháng này" value={String(o.totalConsultationsThisMonth)} icon={Inbox} trend={{ positive: true, label: "+5 so với tuần trước" }} />
-        <StatCard label="Tỉ lệ chuyển đổi" value={`${o.conversionRate.toFixed(2)}%`} icon={TrendingUp} />
+        <StatCard label="Lượt truy cập hôm nay" value={overview.totalVisitsToday.toLocaleString("vi-VN")} icon={Eye} />
+        <StatCard label="Lượt truy cập tháng này" value={overview.totalVisitsThisMonth.toLocaleString("vi-VN")} icon={Users} trend={{ positive: true, label: "Realtime từ server" }} />
+        <StatCard label="Đăng ký tư vấn tháng này" value={String(overview.totalConsultationsThisMonth)} icon={Inbox} />
+        <StatCard label="Tỉ lệ chuyển đổi" value={`${overview.conversionRate}%`} icon={TrendingUp} />
       </div>
 
-      <VisitsChart data={visitsMock} />
+      <VisitsChart data={visits} />
 
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
         <div className="mb-4 flex items-center justify-between">
@@ -40,7 +70,6 @@ export default function AdminDashboardPage() {
             Xem tất cả
           </a>
         </div>
-
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -52,7 +81,7 @@ export default function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {consultationsMock.map((c) => (
+              {consultations.map((c) => (
                 <tr key={c.id} className="border-b border-navy/5 last:border-0">
                   <td className="py-3 font-medium text-navy">{c.fullName}</td>
                   <td className="py-3 text-navy/60">{c.phone}</td>
@@ -62,6 +91,13 @@ export default function AdminDashboardPage() {
                   </td>
                 </tr>
               ))}
+              {consultations.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-navy/40">
+                    Chưa có đăng ký nào
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

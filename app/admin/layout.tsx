@@ -1,16 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
-import { AdminSidebar } from "@/components/layout/AdminSidebar";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminTopbar } from "@/components/layout/AdminTopbar";
 import { ADMIN_NAV_LINKS } from "@/lib/constants";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const { user, loading } = useAuth();
 
-  // Trang login dùng layout riêng (full-screen, không sidebar/topbar)
+  useEffect(() => {
+    if (!loading && !user && pathname !== "/admin/login") {
+      router.push("/admin/login");
+    }
+  }, [user, loading, pathname, router]);
+
+  if (loading)
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="size-6 animate-spin rounded-full border-2 border-navy border-t-transparent" />
+      </div>
+    );
+
   if (pathname === "/admin/login") {
     return <>{children}</>;
   }

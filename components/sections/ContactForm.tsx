@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createConsultation } from "@/lib/api/consultations.api";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
@@ -10,16 +11,25 @@ const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 t
 
 export function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
     setStatus("submitting");
+    const fd = new FormData(e.currentTarget);
     try {
-      // TODO: thay bằng lib/api/consultations.api.ts khi nối backend thật
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await createConsultation({
+        fullName: fd.get("fullName") as string,
+        phone: fd.get("phone") as string,
+        email: (fd.get("email") as string) || undefined,
+        address: (fd.get("address") as string) || undefined,
+        message: (fd.get("message") as string) || undefined,
+      });
       setStatus("success");
-      e.currentTarget.reset();
-    } catch {
+      form.reset();
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message ?? "Có lỗi xảy ra, vui lòng thử lại.");
       setStatus("error");
     }
   }
@@ -49,33 +59,28 @@ export function ContactForm() {
           <input id="phone" name="phone" required className={inputClass} placeholder="09xx xxx xxx" />
         </div>
       </div>
-
       <div>
         <label htmlFor="email" className="mb-1.5 block text-xs font-medium text-navy/70">
           Email
         </label>
         <input id="email" name="email" type="email" className={inputClass} placeholder="ban@email.com" />
       </div>
-
       <div>
         <label htmlFor="address" className="mb-1.5 block text-xs font-medium text-navy/70">
           Địa chỉ lắp đặt
         </label>
         <input id="address" name="address" className={inputClass} placeholder="Số nhà, đường, quận/huyện..." />
       </div>
-
       <div>
         <label htmlFor="message" className="mb-1.5 block text-xs font-medium text-navy/70">
           Nội dung cần tư vấn
         </label>
-        <textarea id="message" name="message" rows={4} className={cn(inputClass, "resize-none")} placeholder="Mô tả nhu cầu, công suất mong muốn, diện tích mái..." />
+        <textarea id="message" name="message" rows={4} className={cn(inputClass, "resize-none")} placeholder="Mô tả nhu cầu, công suất mong muốn..." />
       </div>
-
       <Button type="submit" variant="primary" className="w-full" disabled={status === "submitting"}>
         {status === "submitting" ? "Đang gửi..." : "Gửi liên hệ"}
       </Button>
-
-      {status === "error" && <p className="text-xs text-red-600">Có lỗi xảy ra, vui lòng thử lại.</p>}
+      {status === "error" && <p className="text-xs text-red-600">{errorMsg}</p>}
     </form>
   );
 }

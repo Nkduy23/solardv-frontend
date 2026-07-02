@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Consultation, ConsultationStatus } from "@/types/consultation";
+import { getConsultations, updateConsultationStatus, deleteConsultation } from "@/lib/api/consultations.api";
 import { consultationsMock } from "@/mocks/consultations.mock";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { Modal } from "@/components/admin/Modal";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 const STATUS_OPTIONS: { value: ConsultationStatus; label: string }[] = [
   { value: "NEW", label: "Mới" },
@@ -15,7 +19,6 @@ const STATUS_OPTIONS: { value: ConsultationStatus; label: string }[] = [
   { value: "DONE", label: "Hoàn tất" },
   { value: "CANCELLED", label: "Đã huỷ" },
 ];
-
 const STATUS_COLOR: Record<ConsultationStatus, string> = {
   NEW: "bg-sunrise-amber/15 text-sunrise-copper",
   CONTACTED: "bg-blue-100 text-blue-700",
@@ -28,58 +31,76 @@ function formatDate(iso: string) {
 }
 
 export default function AdminConsultationsPage() {
-  const [data, setData] = useState<Consultation[]>(consultationsMock);
+  const [data, setData] = useState<Consultation[]>(USE_MOCK ? consultationsMock : []);
+  const [loading, setLoading] = useState(!USE_MOCK);
   const [selected, setSelected] = useState<Consultation | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Consultation | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  function updateStatus(id: string, status: ConsultationStatus) {
-    setData((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
-    setSelected((prev) => (prev?.id === id ? { ...prev, status } : prev));
+  async function load() {
+    if (USE_MOCK) return;
+    setLoading(true);
+    const res = await getConsultations({ limit: 100 });
+    setData(res.data);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function handleUpdateStatus(id: string, status: ConsultationStatus) {
+    if (USE_MOCK) {
+      setData((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
+      setSelected((prev) => (prev?.id === id ? { ...prev, status } : prev));
+      return;
+    }
+    setSaving(true);
+    const updated = await updateConsultationStatus(id, status);
+    setData((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    setSelected((prev) => (prev?.id === id ? updated : prev));
+    setSaving(false);
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    if (!USE_MOCK) await deleteConsultation(deleteTarget.id);
+    setData((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+    setDeleteTarget(null);
   }
 
   const columns = [
-    {
-      key: "fullName",
-      header: "Khách hàng",
-      render: (c: Consultation) => <p className="font-medium text-navy">{c.fullName}</p>,
-    },
-    {
-      key: "phone",
-      header: "Điện thoại",
-      render: (c: Consultation) => <span className="text-navy/60">{c.phone}</span>,
-    },
-    {
-      key: "message",
-      header: "Nội dung",
-      className: "max-w-xs",
-      render: (c: Consultation) => <span className="line-clamp-1 text-navy/60">{c.message}</span>,
-    },
+    { key: "fullName", header: "Khách hàng", render: (c: Consultation) => <p className="font-medium text-navy">{c.fullName}</p> },
+    { key: "phone", header: "Điện thoại", render: (c: Consultation) => <span className="text-navy/60">{c.phone}</span> },
+    { key: "message", header: "Nội dung", className: "max-w-xs", render: (c: Consultation) => <span className="line-clamp-1 text-navy/60">{c.message}</span> },
     {
       key: "status",
       header: "Trạng thái",
       render: (c: Consultation) => <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", STATUS_COLOR[c.status])}>{STATUS_OPTIONS.find((s) => s.value === c.status)?.label}</span>,
     },
-    {
-      key: "createdAt",
-      header: "Ngày đăng ký",
-      render: (c: Consultation) => <span className="text-navy/50">{formatDate(c.createdAt)}</span>,
-    },
+    { key: "createdAt", header: "Ngày đăng ký", render: (c: Consultation) => <span className="text-navy/50">{formatDate(c.createdAt)}</span> },
     {
       key: "actions",
       header: "",
       render: (c: Consultation) => (
-        <Button variant="ghost" className="text-xs" onClick={() => setSelected(c)}>
-          Chi tiết
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" className="text-xs" onClick={() => setSelected(c)}>
+            Chi tiết
+          </Button>
+          <Button variant="ghost" className="text-xs text-red-500" onClick={() => setDeleteTarget(c)}>
+            Xoá
+          </Button>
+        </div>
       ),
     },
   ];
 
   return (
     <>
-      <AdminPageHeader title="Đăng ký tư vấn" description={`${data.filter((c) => c.status === "NEW").length} đăng ký mới chưa xử lý`} />
-      <DataTable columns={columns} data={data} keyExtractor={(c) => c.id} emptyText="Chưa có đăng ký nào" />
+      <AdminPageHeader title="Đăng ký tư vấn" description={loading ? "Đang tải..." : `${data.filter((c) => c.status === "NEW").length} đăng ký mới chưa xử lý`} />
 
-      {/* Modal chi tiết & đổi trạng thái */}
+      {loading ? <div className="h-64 animate-pulse rounded-2xl bg-navy/5" /> : <DataTable columns={columns} data={data} keyExtractor={(c) => c.id} emptyText="Chưa có đăng ký nào" />}
+
       <Modal open={!!selected} onClose={() => setSelected(null)} title="Chi tiết đăng ký tư vấn">
         {selected && (
           <div className="space-y-4">
@@ -101,16 +122,16 @@ export default function AdminConsultationsPage() {
                 <p className="mt-1 text-navy/80">{formatDate(selected.createdAt)}</p>
               </div>
             </div>
-
             <div>
               <p className="mb-2 text-xs font-medium text-navy/50">Cập nhật trạng thái</p>
               <div className="flex flex-wrap gap-2">
                 {STATUS_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => updateStatus(selected.id, opt.value)}
+                    disabled={saving}
+                    onClick={() => handleUpdateStatus(selected.id, opt.value)}
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50",
                       selected.status === opt.value ? "border-sunrise-amber bg-sunrise-amber text-navy" : "border-navy/15 text-navy/60 hover:border-navy/30",
                     )}
                   >
@@ -119,15 +140,23 @@ export default function AdminConsultationsPage() {
                 ))}
               </div>
             </div>
-
             <div className="flex justify-end pt-2">
               <Button variant="primary" onClick={() => setSelected(null)}>
-                Lưu & đóng
+                Đóng
               </Button>
             </div>
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Xoá đăng ký?"
+        description={`Xoá đăng ký của "${deleteTarget?.fullName}"?`}
+        confirmLabel="Xoá"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </>
   );
 }
