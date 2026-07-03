@@ -47,7 +47,9 @@ export function RichTextEditor({ value, onChange, placeholder = "Nội dung bài
   // Sync value từ ngoài vào (khi load data từ API)
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
-      editor.commands.setContent(value, false);
+      editor.commands.setContent(value, {
+        emitUpdate: false,
+      });
     }
   }, [value, editor]);
 
