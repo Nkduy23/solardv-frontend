@@ -10,6 +10,8 @@ import { Modal } from "@/components/admin/Modal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2 } from "lucide-react";
+import { Pagination } from "@/components/admin/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
@@ -23,17 +25,19 @@ export default function AdminProjectsPage() {
   const [form, setForm] = useState(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [saving, setSaving] = useState(false);
+  const { page, limit, meta, updateMeta, goTo } = usePagination(10);
 
-  async function load() {
+  async function load(p = page) {
     if (USE_MOCK) return;
     setLoading(true);
-    const res = await api.getProjects({ limit: 100 });
+    const res = await api.getProjects({ page: p, limit });
     setData(res.data);
+    updateMeta(res.meta);
     setLoading(false);
   }
   useEffect(() => {
     load();
-  }, []);
+  }, [page]);
 
   function openCreate() {
     setEditTarget(null);
@@ -113,7 +117,14 @@ export default function AdminProjectsPage() {
   return (
     <>
       <AdminPageHeader title="Quản lý dự án" description={`${data.length} công trình`} action="Thêm dự án" onAction={openCreate} />
-      {loading ? <div className="h-64 animate-pulse rounded-2xl bg-navy/5" /> : <DataTable columns={columns} data={data} keyExtractor={(p) => p.id} />}
+      {loading ? (
+        <div className="h-64 animate-pulse rounded-2xl bg-navy/5" />
+      ) : (
+        <>
+          <DataTable columns={columns} data={data} keyExtractor={(p) => p.id} />
+          {!USE_MOCK && <Pagination page={page} total={meta.total} limit={limit} onChange={goTo} />}
+        </>
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Chỉnh sửa dự án" : "Thêm dự án mới"}>
         <div className="space-y-4">

@@ -6,12 +6,15 @@ import { getConsultations, updateConsultationStatus, deleteConsultation } from "
 import { consultationsMock } from "@/mocks/consultations.mock";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTable } from "@/components/admin/DataTable";
+import { Pagination } from "@/components/admin/Pagination";
 import { Modal } from "@/components/admin/Modal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
+import { usePagination } from "@/hooks/usePagination";
 import { cn } from "@/lib/utils";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+const LIMIT = 10;
 
 const STATUS_OPTIONS: { value: ConsultationStatus; label: string }[] = [
   { value: "NEW", label: "Mới" },
@@ -36,29 +39,31 @@ export default function AdminConsultationsPage() {
   const [selected, setSelected] = useState<Consultation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Consultation | null>(null);
   const [saving, setSaving] = useState(false);
+  const { page, limit, meta, updateMeta, goTo } = usePagination(LIMIT);
 
-  async function load() {
+  async function load(p = page) {
     if (USE_MOCK) return;
     setLoading(true);
-    const res = await getConsultations({ limit: 100 });
+    const res = await getConsultations({ page: p, limit });
     setData(res.data);
+    updateMeta(res.meta);
     setLoading(false);
   }
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page]);
 
   async function handleUpdateStatus(id: string, status: ConsultationStatus) {
-    if (USE_MOCK) {
-      setData((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
-      setSelected((prev) => (prev?.id === id ? { ...prev, status } : prev));
-      return;
-    }
     setSaving(true);
-    const updated = await updateConsultationStatus(id, status);
-    setData((prev) => prev.map((c) => (c.id === id ? updated : c)));
-    setSelected((prev) => (prev?.id === id ? updated : prev));
+    if (!USE_MOCK) {
+      const updated = await updateConsultationStatus(id, status);
+      setData((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      setSelected((prev) => (prev?.id === id ? updated : prev));
+    } else {
+      setData((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
+      setSelected((prev) => (prev?.id === id ? { ...prev!, status } : prev));
+    }
     setSaving(false);
   }
 
@@ -66,6 +71,7 @@ export default function AdminConsultationsPage() {
     if (!deleteTarget) return;
     if (!USE_MOCK) await deleteConsultation(deleteTarget.id);
     setData((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+    updateMeta({ ...meta, total: meta.total - 1 });
     setDeleteTarget(null);
   }
 
@@ -83,7 +89,7 @@ export default function AdminConsultationsPage() {
       key: "actions",
       header: "",
       render: (c: Consultation) => (
-        <div className="flex gap-2">
+        <div className="flex justify-end gap-2">
           <Button variant="ghost" className="text-xs" onClick={() => setSelected(c)}>
             Chi tiết
           </Button>
@@ -97,9 +103,15 @@ export default function AdminConsultationsPage() {
 
   return (
     <>
-      <AdminPageHeader title="Đăng ký tư vấn" description={loading ? "Đang tải..." : `${data.filter((c) => c.status === "NEW").length} đăng ký mới chưa xử lý`} />
-
-      {loading ? <div className="h-64 animate-pulse rounded-2xl bg-navy/5" /> : <DataTable columns={columns} data={data} keyExtractor={(c) => c.id} emptyText="Chưa có đăng ký nào" />}
+      <AdminPageHeader title="Đăng ký tư vấn" description={loading ? "Đang tải..." : `${USE_MOCK ? data.filter((c) => c.status === "NEW").length : meta.total} kết quả`} />
+      {loading ? (
+        <div className="h-64 animate-pulse rounded-2xl bg-navy/5" />
+      ) : (
+        <>
+          <DataTable columns={columns} data={data} keyExtractor={(c) => c.id} emptyText="Chưa có đăng ký nào" />
+          {!USE_MOCK && <Pagination page={page} total={meta.total} limit={limit} onChange={goTo} />}
+        </>
+      )}
 
       <Modal open={!!selected} onClose={() => setSelected(null)} title="Chi tiết đăng ký tư vấn">
         {selected && (

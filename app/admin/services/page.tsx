@@ -6,10 +6,12 @@ import * as api from "@/lib/api/services.api";
 import { servicesMock } from "@/mocks/services.mock";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTable } from "@/components/admin/DataTable";
+import { Pagination } from "@/components/admin/Pagination";
 import { Modal } from "@/components/admin/Modal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2 } from "lucide-react";
+import { usePagination } from "@/hooks/usePagination";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
@@ -23,17 +25,19 @@ export default function AdminServicesPage() {
   const [form, setForm] = useState(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<Service | null>(null);
   const [saving, setSaving] = useState(false);
+  const { page, limit, meta, updateMeta, goTo } = usePagination(10);
 
-  async function load() {
+  async function load(p = page) {
     if (USE_MOCK) return;
     setLoading(true);
-    const res = await api.getServices({ limit: 100 });
+    const res = await api.getServices({ page: p, limit });
     setData(res.data);
+    updateMeta(res.meta);
     setLoading(false);
   }
   useEffect(() => {
     load();
-  }, []);
+  }, [page]);
 
   function openCreate() {
     setEditTarget(null);
@@ -58,7 +62,8 @@ export default function AdminServicesPage() {
           setData((prev) => prev.map((s) => (s.id === editTarget.id ? updated : s)));
         } else {
           const created = await api.createService(form);
-          setData((prev) => [...prev, created]);
+          setData((prev) => [created, ...prev]);
+          updateMeta({ ...meta, total: meta.total + 1 });
         }
       }
       setModalOpen(false);
@@ -71,6 +76,7 @@ export default function AdminServicesPage() {
     if (!deleteTarget) return;
     if (!USE_MOCK) await api.deleteService(deleteTarget.id);
     setData((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+    updateMeta({ ...meta, total: meta.total - 1 });
     setDeleteTarget(null);
   }
 
@@ -95,8 +101,15 @@ export default function AdminServicesPage() {
 
   return (
     <>
-      <AdminPageHeader title="Quản lý dịch vụ" description={`${data.length} dịch vụ`} action="Thêm dịch vụ" onAction={openCreate} />
-      {loading ? <div className="h-64 animate-pulse rounded-2xl bg-navy/5" /> : <DataTable columns={columns} data={data} keyExtractor={(s) => s.id} />}
+      <AdminPageHeader title="Quản lý dịch vụ" description={USE_MOCK ? `${data.length} dịch vụ` : `${meta.total} dịch vụ`} action="Thêm dịch vụ" onAction={openCreate} />
+      {loading ? (
+        <div className="h-64 animate-pulse rounded-2xl bg-navy/5" />
+      ) : (
+        <>
+          <DataTable columns={columns} data={data} keyExtractor={(s) => s.id} />
+          {!USE_MOCK && <Pagination page={page} total={meta.total} limit={limit} onChange={goTo} />}
+        </>
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ mới"}>
         <div className="space-y-4">

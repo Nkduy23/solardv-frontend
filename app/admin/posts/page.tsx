@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Pagination } from "@/components/admin/Pagination";
+import { usePagination } from "@/hooks/usePagination";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
@@ -30,17 +32,19 @@ export default function AdminPostsPage() {
   const [form, setForm] = useState(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<Post | null>(null);
   const [saving, setSaving] = useState(false);
+  const { page, limit, meta, updateMeta, goTo } = usePagination(10);
 
-  async function load() {
+  async function load(p = page) {
     if (USE_MOCK) return;
     setLoading(true);
-    const res = await api.getPosts({ limit: 100 });
+    const res = await api.getPosts({ page: p, limit });
     setData(res.data);
+    updateMeta(res.meta);
     setLoading(false);
   }
   useEffect(() => {
     load();
-  }, []);
+  }, [page]);
 
   function openCreate() {
     setEditTarget(null);
@@ -123,7 +127,14 @@ export default function AdminPostsPage() {
         action="Viết bài mới"
         onAction={openCreate}
       />
-      {loading ? <div className="h-64 animate-pulse rounded-2xl bg-navy/5" /> : <DataTable columns={columns} data={data} keyExtractor={(p) => p.id} />}
+      {loading ? (
+        <div className="h-64 animate-pulse rounded-2xl bg-navy/5" />
+      ) : (
+        <>
+          <DataTable columns={columns} data={data} keyExtractor={(p) => p.id} />
+          {!USE_MOCK && <Pagination page={page} total={meta.total} limit={limit} onChange={goTo} />}
+        </>
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Chỉnh sửa bài viết" : "Bài viết mới"}>
         <div className="space-y-4">
