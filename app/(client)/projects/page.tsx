@@ -1,8 +1,19 @@
+import type { Metadata } from "next";
 import { getProjects } from "@/lib/api/projects.api";
 import { projectsMock } from "@/mocks/projects.mock";
 import { PageHeader } from "@/components/sections/PageHeader";
 import { ProjectGallery } from "@/components/sections/ProjectGallery";
 import { Container } from "@/components/layout/Container";
+
+export const metadata: Metadata = {
+  title: "Dự án | SolarDV — Công trình điện mặt trời đã triển khai",
+  description: "Hơn 120 công trình điện mặt trời đã lắp đặt — từ hộ gia đình đến nhà xưởng quy mô lớn trên toàn miền Nam.",
+  openGraph: {
+    title: "Dự án | SolarDV",
+    description: "Những công trình điện mặt trời đã đồng hành cùng SolarDV.",
+    url: "https://solardv.vn/projects",
+  },
+};
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 

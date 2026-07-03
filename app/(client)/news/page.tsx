@@ -1,20 +1,26 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getPosts } from "@/lib/api/posts.api";
 import { postsMock } from "@/mocks/posts.mock";
 import { PageHeader } from "@/components/sections/PageHeader";
-import { ScrollReveal } from "@/components/motion/ScrollReveal";
-import { StaggerList, StaggerItem } from "@/components/motion/StaggerList";
+import { StaggerItem, StaggerList } from "@/components/motion/StaggerList";
 import { Container } from "@/components/layout/Container";
+
+export const metadata: Metadata = {
+  title: "Tin tức | SolarDV — Kiến thức điện năng lượng mặt trời",
+  description: "Cập nhật kiến thức, xu hướng và chính sách về điện năng lượng mặt trời từ đội ngũ SolarDV.",
+  openGraph: {
+    title: "Tin tức | SolarDV",
+    description: "Kiến thức & cập nhật về điện mặt trời từ SolarDV.",
+    url: "https://solardv.vn/news",
+  },
+};
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 function formatDate(iso: string | null) {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 export default async function NewsPage() {
@@ -23,7 +29,6 @@ export default async function NewsPage() {
   return (
     <>
       <PageHeader eyebrow="Tin tức" title="Kiến thức & cập nhật từ SolarDV." description="Những bài viết hữu ích về điện năng lượng mặt trời, công nghệ và chính sách năng lượng sạch." />
-
       <section className="bg-paper py-24">
         <Container>
           {posts.length === 0 ? (

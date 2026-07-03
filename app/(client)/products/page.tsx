@@ -9,6 +9,17 @@ import { ProductCard } from "@/components/sections/ProductCard";
 import { StaggerItem, StaggerList } from "@/components/motion/StaggerList";
 import { Container } from "@/components/layout/Container";
 import { cn } from "@/lib/utils";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Sản phẩm | SolarDV — Thiết bị điện mặt trời chính hãng",
+  description: "Tấm pin, biến tần và hệ thống lưu trữ điện năng lượng mặt trời chính hãng, bảo hành rõ ràng từ SolarDV.",
+  openGraph: {
+    title: "Sản phẩm | SolarDV",
+    description: "Thiết bị điện mặt trời chính hãng — tấm pin, biến tần, lưu trữ.",
+    url: "https://solardv.vn/products",
+  },
+};
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 

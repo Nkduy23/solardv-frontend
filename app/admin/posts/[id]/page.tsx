@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getPostBySlug, updatePost } from "@/lib/api/posts.api";
+import { getPostById, updatePost } from "@/lib/api/posts.api";
 import { postsMock } from "@/mocks/posts.mock";
 import { Post } from "@/types/post";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
@@ -29,14 +29,8 @@ export default function AdminPostDetailPage() {
       if (USE_MOCK) {
         found = postsMock.find((p) => p.id === id);
       } else {
-        // BE không có GET by id, dùng id làm slug tạm hoặc fetch list rồi find
-        // TODO: thêm GET /posts/:id endpoint ở BE sau
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts?limit=100`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("solardv_access_token")}` },
-          });
-          const json = await res.json();
-          found = json.data?.find((p: Post) => p.id === id);
+          found = await getPostById(id); // ← dùng endpoint GET /posts/id/:id mới
         } catch {
           found = undefined;
         }
@@ -55,9 +49,7 @@ export default function AdminPostDetailPage() {
     if (!post) return;
     setSaving(true);
     try {
-      if (!USE_MOCK) {
-        await updatePost(post.id, { ...form, content });
-      }
+      if (!USE_MOCK) await updatePost(post.id, { ...form, content });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } finally {
@@ -87,7 +79,7 @@ export default function AdminPostDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <div className="space-y-4">
-          <div className="rounded-2xl border border-navy/10 bg-white p-6 space-y-4">
+          <div className="space-y-4 rounded-2xl border border-navy/10 bg-white p-6">
             <div>
               <label className="mb-1.5 block text-xs font-medium text-navy/60">Tiêu đề</label>
               <input className={inputClass} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
@@ -101,11 +93,10 @@ export default function AdminPostDetailPage() {
               <textarea rows={3} className={inputClass + " resize-none"} value={form.excerpt} onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))} />
             </div>
           </div>
-
           <div className="rounded-2xl border border-navy/10 bg-white p-6">
             <div className="mb-3 flex items-center justify-between">
               <label className="text-xs font-medium text-navy/60">Nội dung bài viết</label>
-              <span className="rounded-full bg-sunrise-amber/10 px-2.5 py-1 text-[10px] font-medium text-sunrise-copper">Rich text editor — tích hợp sau</span>
+              <span className="rounded-full bg-sunrise-amber/10 px-2.5 py-1 text-[10px] font-medium text-sunrise-copper">Rich text editor — Phase 3</span>
             </div>
             <textarea
               rows={16}
@@ -134,8 +125,7 @@ export default function AdminPostDetailPage() {
               {saved && <p className="text-center text-xs text-emerald-600">Đã lưu thành công!</p>}
             </div>
           </div>
-
-          <div className="rounded-2xl border border-navy/10 bg-white p-5 text-xs text-navy/50 space-y-1.5">
+          <div className="space-y-1.5 rounded-2xl border border-navy/10 bg-white p-5 text-xs text-navy/50">
             <p className="mb-2 font-medium text-navy/60">Thông tin</p>
             <div className="flex justify-between">
               <span>ID</span>

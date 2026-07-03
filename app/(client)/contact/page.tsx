@@ -1,9 +1,20 @@
+import type { Metadata } from "next";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { PageHeader } from "@/components/sections/PageHeader";
 import { ContactForm } from "@/components/sections/ContactForm";
 import { ScrollReveal } from "@/components/motion/ScrollReveal";
 import { Container } from "@/components/layout/Container";
 import { COMPANY_INFO } from "@/lib/constants";
+
+export const metadata: Metadata = {
+  title: "Liên hệ | SolarDV — Đăng ký tư vấn điện mặt trời",
+  description: "Liên hệ SolarDV để được tư vấn miễn phí về giải pháp điện năng lượng mặt trời phù hợp với công trình của bạn.",
+  openGraph: {
+    title: "Liên hệ | SolarDV",
+    description: "Đăng ký tư vấn miễn phí — đội ngũ SolarDV phản hồi trong 24 giờ.",
+    url: "https://solardv.vn/contact",
+  },
+};
 
 const CONTACT_ITEMS = [
   { icon: MapPin, label: "Địa chỉ", value: COMPANY_INFO.address },
@@ -14,8 +25,7 @@ const CONTACT_ITEMS = [
 export default function ContactPage() {
   return (
     <>
-      <PageHeader eyebrow="Liên hệ" title="Sẵn sàng tư vấn giải pháp phù hợp với công trình của bạn." description="Điền thông tin bên dưới hoặc liên hệ trực tiếp theo thông tin sau." />
-
+      <PageHeader eyebrow="Liên hệ" title="Sẵn sàng tư vấn giải pháp phù hợp với công trình của bạn." description="Điền thông tin bên dưới hoặc liên hệ trực tiếp." />
       <section className="bg-paper py-24">
         <Container className="grid gap-12 lg:grid-cols-[1fr_1.3fr]">
           <ScrollReveal className="space-y-6">
@@ -31,7 +41,6 @@ export default function ContactPage() {
               </div>
             ))}
           </ScrollReveal>
-
           <ScrollReveal delay={0.1}>
             <ContactForm />
           </ScrollReveal>

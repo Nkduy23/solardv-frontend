@@ -7,7 +7,9 @@ interface ListResult<T> {
 }
 
 export async function getPosts(params?: { page?: number; limit?: number; search?: string; published?: boolean }): Promise<ListResult<Post>> {
-  const { data } = await apiClient.get("/posts", { params: { ...params, published: params?.published ? "true" : undefined } });
+  const { data } = await apiClient.get("/posts", {
+    params: { ...params, published: params?.published ? "true" : undefined },
+  });
   return data;
 }
 
@@ -16,12 +18,18 @@ export async function getPostBySlug(slug: string): Promise<Post> {
   return data.data;
 }
 
+// Dùng endpoint mới GET /posts/id/:id
+export async function getPostById(id: string): Promise<Post> {
+  const { data } = await apiClient.get(`/posts/id/${id}`);
+  return data.data;
+}
+
 export async function createPost(payload: Omit<Post, "id" | "publishedAt">): Promise<Post> {
   const { data } = await apiClient.post("/posts", payload);
   return data.data;
 }
 
-export async function updatePost(id: string, payload: Partial<Post>): Promise<Post> {
+export async function updatePost(id: string, payload: Partial<Post> & { content?: string }): Promise<Post> {
   const { data } = await apiClient.patch(`/posts/${id}`, payload);
   return data.data;
 }
