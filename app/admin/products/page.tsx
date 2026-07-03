@@ -8,15 +8,14 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { Modal } from "@/components/admin/Modal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2 } from "lucide-react";
-import { Pagination } from "@/components/admin/Pagination";
-import { usePagination } from "@/hooks/usePagination";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
 const CATEGORIES = ["Tấm pin", "Biến tần", "Lưu trữ", "Phụ kiện"];
-const EMPTY = { name: "", slug: "", category: CATEGORIES[0], description: "" };
+const EMPTY = { name: "", slug: "", category: CATEGORIES[0], description: "", image: "" };
 
 export default function AdminProductsPage() {
   const [data, setData] = useState<Product[]>(USE_MOCK ? productsMock : []);
@@ -26,19 +25,18 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
-  const { page, limit, meta, updateMeta, goTo } = usePagination(10);
 
-  async function load(p = page) {
+  async function load() {
     if (USE_MOCK) return;
     setLoading(true);
-    const res = await api.getProducts({ page: p, limit });
-    setData(res.data);
-    updateMeta(res.meta);
+    const res = await api.getProducts({ limit: 100 });
+    setData(res.data.map((p: any) => ({ ...p, image: p.images?.[0] ?? "" })));
     setLoading(false);
   }
+
   useEffect(() => {
     load();
-  }, [page]);
+  }, []);
 
   function openCreate() {
     setEditTarget(null);
@@ -47,23 +45,30 @@ export default function AdminProductsPage() {
   }
   function openEdit(item: Product) {
     setEditTarget(item);
-    setForm({ name: item.name, slug: item.slug, category: item.category, description: item.description });
+    setForm({ name: item.name, slug: item.slug, category: item.category, description: item.description, image: item.image ?? "" });
     setModalOpen(true);
   }
 
   async function handleSave() {
     setSaving(true);
     try {
+      const payload = {
+        name: form.name,
+        slug: form.slug,
+        category: form.category,
+        description: form.description,
+        images: form.image ? [form.image] : [], // ← map image (string) -> images (array)
+      };
       if (USE_MOCK) {
         if (editTarget) setData((prev) => prev.map((p) => (p.id === editTarget.id ? { ...editTarget, ...form } : p)));
-        else setData((prev) => [...prev, { id: `prod-${Date.now()}`, image: "", ...form }]);
+        else setData((prev) => [...prev, { id: `prod-${Date.now()}`, ...form }]);
       } else {
         if (editTarget) {
-          const updated = await api.updateProduct(editTarget.id, form);
-          setData((prev) => prev.map((p) => (p.id === editTarget.id ? updated : p)));
+          const updated = await api.updateProduct(editTarget.id, payload);
+          setData((prev) => prev.map((p) => (p.id === editTarget.id ? { ...updated, image: form.image } : p)));
         } else {
-          const created = await api.createProduct(form);
-          setData((prev) => [...prev, created]);
+          const created = await api.createProduct(payload as any);
+          setData((prev) => [...prev, { ...created, image: form.image }]);
         }
       }
       setModalOpen(false);
@@ -80,12 +85,13 @@ export default function AdminProductsPage() {
   }
 
   const columns = [
-    { key: "name", header: "Sản phẩm", render: (p: Product) => <p className="font-medium text-navy">{p.name}</p> },
     {
-      key: "category",
-      header: "Danh mục",
-      render: (p: Product) => <span className="rounded-full bg-sunrise-amber/10 px-2.5 py-1 text-xs font-medium text-sunrise-copper">{p.category}</span>,
+      key: "image",
+      header: "",
+      render: (p: Product) => <div className="size-12 overflow-hidden rounded-lg bg-navy/5">{p.image && <img src={p.image} alt={p.name} className="h-full w-full object-cover" />}</div>,
     },
+    { key: "name", header: "Sản phẩm", render: (p: Product) => <p className="font-medium text-navy">{p.name}</p> },
+    { key: "category", header: "Danh mục", render: (p: Product) => <span className="rounded-full bg-sunrise-amber/10 px-2.5 py-1 text-xs font-medium text-sunrise-copper">{p.category}</span> },
     { key: "description", header: "Mô tả", className: "max-w-xs", render: (p: Product) => <span className="line-clamp-1 text-sm text-navy/60">{p.description}</span> },
     {
       key: "actions",
@@ -106,17 +112,14 @@ export default function AdminProductsPage() {
   return (
     <>
       <AdminPageHeader title="Quản lý sản phẩm" description={`${data.length} sản phẩm`} action="Thêm sản phẩm" onAction={openCreate} />
-      {loading ? (
-        <div className="h-64 animate-pulse rounded-2xl bg-navy/5" />
-      ) : (
-        <>
-          <DataTable columns={columns} data={data} keyExtractor={(p) => p.id} />
-          {!USE_MOCK && <Pagination page={page} total={meta.total} limit={limit} onChange={goTo} />}
-        </>
-      )}
+      {loading ? <div className="h-64 animate-pulse rounded-2xl bg-navy/5" /> : <DataTable columns={columns} data={data} keyExtractor={(p) => p.id} />}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}>
         <div className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-navy/60">Ảnh sản phẩm</label>
+            <ImageUploader value={form.image} onChange={(url) => setForm((f) => ({ ...f, image: url }))} category="product" />
+          </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-navy/60">Tên sản phẩm</label>
             <input className={inputClass} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />

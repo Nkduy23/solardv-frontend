@@ -2,9 +2,9 @@ import apiClient from "./client";
 
 export interface MediaFile {
   id: string;
-  originalName: string;
-  filename: string;
+  publicId: string;
   url: string;
+  originalName: string;
   size: number;
   mimetype: string;
   category?: string;

@@ -3,8 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: [
-      // TODO: thêm domain ảnh thật (CDN/S3) khi có
-      { protocol: "https", hostname: "**" },
+      { protocol: "https", hostname: "res.cloudinary.com" }, // ảnh upload qua Cloudinary
     ],
   },
 };
