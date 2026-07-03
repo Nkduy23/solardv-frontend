@@ -6,6 +6,7 @@ import { getPostById, updatePost } from "@/lib/api/posts.api";
 import { postsMock } from "@/mocks/posts.mock";
 import { Post } from "@/types/post";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,7 +31,7 @@ export default function AdminPostDetailPage() {
         found = postsMock.find((p) => p.id === id);
       } else {
         try {
-          found = await getPostById(id); // ← dùng endpoint GET /posts/id/:id mới
+          found = await getPostById(id);
         } catch {
           found = undefined;
         }
@@ -79,6 +80,7 @@ export default function AdminPostDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <div className="space-y-4">
+          {/* Meta fields */}
           <div className="space-y-4 rounded-2xl border border-navy/10 bg-white p-6">
             <div>
               <label className="mb-1.5 block text-xs font-medium text-navy/60">Tiêu đề</label>
@@ -90,24 +92,18 @@ export default function AdminPostDetailPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-navy/60">Tóm tắt</label>
-              <textarea rows={3} className={inputClass + " resize-none"} value={form.excerpt} onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))} />
+              <textarea rows={2} className={inputClass + " resize-none"} value={form.excerpt} onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))} />
             </div>
           </div>
+
+          {/* Rich text editor */}
           <div className="rounded-2xl border border-navy/10 bg-white p-6">
-            <div className="mb-3 flex items-center justify-between">
-              <label className="text-xs font-medium text-navy/60">Nội dung bài viết</label>
-              <span className="rounded-full bg-sunrise-amber/10 px-2.5 py-1 text-[10px] font-medium text-sunrise-copper">Rich text editor — Phase 3</span>
-            </div>
-            <textarea
-              rows={16}
-              className={inputClass + " resize-y font-mono text-xs leading-relaxed"}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Nội dung bài viết..."
-            />
+            <label className="mb-3 block text-xs font-medium text-navy/60">Nội dung bài viết</label>
+            <RichTextEditor value={content} onChange={setContent} />
           </div>
         </div>
 
+        {/* Sidebar */}
         <div className="space-y-4">
           <div className="rounded-2xl border border-navy/10 bg-white p-5">
             <p className="mb-4 text-xs font-medium text-navy/60">Xuất bản</p>
@@ -125,11 +121,12 @@ export default function AdminPostDetailPage() {
               {saved && <p className="text-center text-xs text-emerald-600">Đã lưu thành công!</p>}
             </div>
           </div>
+
           <div className="space-y-1.5 rounded-2xl border border-navy/10 bg-white p-5 text-xs text-navy/50">
             <p className="mb-2 font-medium text-navy/60">Thông tin</p>
             <div className="flex justify-between">
               <span>ID</span>
-              <span className="font-mono">{post.id}</span>
+              <span className="font-mono truncate ml-2">{post.id}</span>
             </div>
             <div className="flex justify-between">
               <span>Trạng thái</span>
