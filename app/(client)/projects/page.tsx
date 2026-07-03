@@ -18,8 +18,7 @@ export const metadata: Metadata = {
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 export default async function ProjectsPage() {
-  const projects = USE_MOCK ? projectsMock : (await getProjects({ limit: 50 })).data;
-
+  const projects = USE_MOCK ? projectsMock : (await getProjects({ limit: 50 })).data.map((p: any) => ({ ...p, image: p.images?.[0] ?? "" }));
   return (
     <>
       <PageHeader eyebrow="Dự án" title="Những công trình đã đồng hành cùng SolarDV." description="Từ hộ gia đình đến nhà xưởng quy mô lớn — mỗi dự án là một câu chuyện về tiết kiệm điện năng." />

@@ -27,10 +27,15 @@ export function NewsSection({ posts }: { posts: Post[] }) {
         <StaggerList className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
           {posts.map((post) => (
             <StaggerItem key={post.id}>
-              <Link href={`/news/${post.slug}`} className="group block h-full rounded-2xl border border-navy/10 bg-white p-6 transition-colors hover:border-sunrise-amber/50">
-                <span className="font-mono text-xs text-sunrise-copper">{formatDate(post.publishedAt)}</span>
-                <h3 className="mt-3 font-display text-base font-semibold text-navy group-hover:text-sunrise-copper">{post.title}</h3>
-                <p className="mt-2 line-clamp-2 text-sm text-navy/60">{post.excerpt}</p>
+              <Link href={`/news/${post.slug}`} className="group block h-full overflow-hidden rounded-2xl border border-navy/10 bg-white transition-colors hover:border-sunrise-amber/50">
+                <div className="aspect-[16/9] w-full overflow-hidden bg-gradient-to-br from-navy-light to-navy">
+                  {post.thumbnail && <img src={post.thumbnail} alt={post.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />}
+                </div>
+                <div className="p-6">
+                  <span className="font-mono text-xs text-sunrise-copper">{formatDate(post.publishedAt)}</span>
+                  <h3 className="mt-3 font-display text-base font-semibold text-navy group-hover:text-sunrise-copper">{post.title}</h3>
+                  <p className="mt-2 line-clamp-2 text-sm text-navy/60">{post.excerpt}</p>
+                </div>
               </Link>
             </StaggerItem>
           ))}

@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
-  /** "dark": dùng trên nền tối (Home, gradient navy). "light": dùng trên nền sáng (trang /products). */
   variant?: "dark" | "light";
 }
 
@@ -17,7 +16,9 @@ export function ProductCard({ product, variant = "dark" }: ProductCardProps) {
         isDark ? "border-paper/10 bg-paper/5 hover:border-sunrise-amber/40" : "border-navy/10 bg-white hover:border-sunrise-amber/50",
       )}
     >
-      <div className="aspect-[4/3] w-full bg-gradient-to-br from-navy-light to-navy" />
+      <div className="aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-navy-light to-navy">
+        {product.image && <img src={product.image} alt={product.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />}
+      </div>
       <div className="p-5">
         <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-sunrise-amber">{product.category}</span>
         <h3 className={cn("mt-2 font-display text-base font-semibold", isDark ? "text-paper" : "text-navy")}>{product.name}</h3>

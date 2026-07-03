@@ -11,7 +11,7 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 export default async function HomePage() {
   const [services, products, posts, mediaFiles] = await Promise.all([
     USE_MOCK ? Promise.resolve(servicesMock) : getServices({ limit: 6 }).then((r) => r.data),
-    USE_MOCK ? Promise.resolve(productsMock) : getProducts({ limit: 6 }).then((r) => r.data),
+    USE_MOCK ? Promise.resolve(productsMock) : getProducts({ limit: 6 }).then((r) => r.data.map((p: any) => ({ ...p, image: p.images?.[0] ?? "" }))),
     USE_MOCK ? Promise.resolve([]) : getPosts({ published: true, limit: 3 }).then((r) => r.data),
     USE_MOCK ? Promise.resolve([]) : getMediaFiles("handover"),
   ]);

@@ -37,11 +37,16 @@ export default async function NewsPage() {
             <StaggerList className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {posts.map((post) => (
                 <StaggerItem key={post.id}>
-                  <Link href={`/news/${post.slug}`} className="group flex h-full flex-col rounded-2xl border border-navy/10 bg-white p-6 transition-colors hover:border-sunrise-amber/50">
-                    <span className="font-mono text-xs text-sunrise-copper">{formatDate(post.publishedAt)}</span>
-                    <h2 className="mt-3 font-display text-lg font-semibold text-navy group-hover:text-sunrise-copper">{post.title}</h2>
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-navy/60">{post.excerpt}</p>
-                    <span className="mt-5 text-xs font-medium text-sunrise-copper">Đọc tiếp →</span>
+                  <Link href={`/news/${post.slug}`} className="group flex h-full flex-col overflow-hidden rounded-2xl border border-navy/10 bg-white transition-colors hover:border-sunrise-amber/50">
+                    <div className="aspect-[16/9] w-full overflow-hidden bg-gradient-to-br from-navy-light to-navy">
+                      {post.thumbnail && <img src={post.thumbnail} alt={post.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />}
+                    </div>
+                    <div className="flex flex-1 flex-col p-6">
+                      <span className="font-mono text-xs text-sunrise-copper">{formatDate(post.publishedAt)}</span>
+                      <h2 className="mt-3 font-display text-lg font-semibold text-navy group-hover:text-sunrise-copper">{post.title}</h2>
+                      <p className="mt-2 flex-1 text-sm leading-relaxed text-navy/60">{post.excerpt}</p>
+                      <span className="mt-5 text-xs font-medium text-sunrise-copper">Đọc tiếp →</span>
+                    </div>
                   </Link>
                 </StaggerItem>
               ))}
