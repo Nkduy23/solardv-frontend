@@ -8,16 +8,15 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { Modal } from "@/components/admin/Modal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { Pagination } from "@/components/admin/Pagination";
-import { usePagination } from "@/hooks/usePagination";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
-const EMPTY = { title: "", slug: "", excerpt: "", isPublished: false };
+const EMPTY = { title: "", slug: "", excerpt: "", isPublished: false, thumbnail: "" };
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -25,35 +24,33 @@ function formatDate(iso: string | null) {
 }
 
 export default function AdminPostsPage() {
-  const [data, setData] = useState<Post[]>(USE_MOCK ? postsMock : []);
+  const [data, setData] = useState<(Post & { thumbnail?: string })[]>(USE_MOCK ? postsMock : []);
   const [loading, setLoading] = useState(!USE_MOCK);
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Post | null>(null);
   const [form, setForm] = useState(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<Post | null>(null);
   const [saving, setSaving] = useState(false);
-  const { page, limit, meta, updateMeta, goTo } = usePagination(10);
 
-  async function load(p = page) {
+  async function load() {
     if (USE_MOCK) return;
     setLoading(true);
-    const res = await api.getPosts({ page: p, limit });
+    const res = await api.getPosts({ limit: 100 });
     setData(res.data);
-    updateMeta(res.meta);
     setLoading(false);
   }
   useEffect(() => {
     load();
-  }, [page]);
+  }, []);
 
   function openCreate() {
     setEditTarget(null);
     setForm(EMPTY);
     setModalOpen(true);
   }
-  function openEdit(item: Post) {
+  function openEdit(item: Post & { thumbnail?: string }) {
     setEditTarget(item);
-    setForm({ title: item.title, slug: item.slug, excerpt: item.excerpt ?? "", isPublished: item.isPublished });
+    setForm({ title: item.title, slug: item.slug, excerpt: item.excerpt ?? "", isPublished: item.isPublished, thumbnail: item.thumbnail ?? "" });
     setModalOpen(true);
   }
 
@@ -86,6 +83,13 @@ export default function AdminPostsPage() {
   }
 
   const columns = [
+    {
+      key: "thumbnail",
+      header: "",
+      render: (p: Post & { thumbnail?: string }) => (
+        <div className="size-12 overflow-hidden rounded-lg bg-navy/5">{p.thumbnail && <img src={p.thumbnail} alt={p.title} className="h-full w-full object-cover" />}</div>
+      ),
+    },
     { key: "title", header: "Tiêu đề", render: (p: Post) => <p className="font-medium text-navy">{p.title}</p> },
     { key: "excerpt", header: "Tóm tắt", className: "max-w-xs", render: (p: Post) => <span className="line-clamp-1 text-sm text-navy/60">{p.excerpt}</span> },
     {
@@ -127,17 +131,14 @@ export default function AdminPostsPage() {
         action="Viết bài mới"
         onAction={openCreate}
       />
-      {loading ? (
-        <div className="h-64 animate-pulse rounded-2xl bg-navy/5" />
-      ) : (
-        <>
-          <DataTable columns={columns} data={data} keyExtractor={(p) => p.id} />
-          {!USE_MOCK && <Pagination page={page} total={meta.total} limit={limit} onChange={goTo} />}
-        </>
-      )}
+      {loading ? <div className="h-64 animate-pulse rounded-2xl bg-navy/5" /> : <DataTable columns={columns} data={data} keyExtractor={(p) => p.id} />}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Chỉnh sửa bài viết" : "Bài viết mới"}>
         <div className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-navy/60">Ảnh đại diện</label>
+            <ImageUploader value={form.thumbnail} onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))} category="other" />
+          </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-navy/60">Tiêu đề</label>
             <input className={inputClass} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />

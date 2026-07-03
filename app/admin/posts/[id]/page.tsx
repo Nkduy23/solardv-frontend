@@ -7,6 +7,7 @@ import { postsMock } from "@/mocks/posts.mock";
 import { Post } from "@/types/post";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,14 +20,14 @@ export default function AdminPostDetailPage() {
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
   const [content, setContent] = useState("");
-  const [form, setForm] = useState({ title: "", slug: "", excerpt: "", isPublished: false });
+  const [form, setForm] = useState({ title: "", slug: "", excerpt: "", isPublished: false, thumbnail: "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      let found: Post | undefined;
+      let found: any;
       if (USE_MOCK) {
         found = postsMock.find((p) => p.id === id);
       } else {
@@ -38,8 +39,8 @@ export default function AdminPostDetailPage() {
       }
       if (found) {
         setPost(found);
-        setContent((found as any).content ?? "");
-        setForm({ title: found.title, slug: found.slug, excerpt: found.excerpt ?? "", isPublished: found.isPublished });
+        setContent(found.content ?? "");
+        setForm({ title: found.title, slug: found.slug, excerpt: found.excerpt ?? "", isPublished: found.isPublished, thumbnail: found.thumbnail ?? "" });
       }
       setLoading(false);
     }
@@ -80,8 +81,11 @@ export default function AdminPostDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <div className="space-y-4">
-          {/* Meta fields */}
           <div className="space-y-4 rounded-2xl border border-navy/10 bg-white p-6">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-navy/60">Ảnh đại diện</label>
+              <ImageUploader value={form.thumbnail} onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))} category="other" />
+            </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-navy/60">Tiêu đề</label>
               <input className={inputClass} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
@@ -96,14 +100,12 @@ export default function AdminPostDetailPage() {
             </div>
           </div>
 
-          {/* Rich text editor */}
           <div className="rounded-2xl border border-navy/10 bg-white p-6">
             <label className="mb-3 block text-xs font-medium text-navy/60">Nội dung bài viết</label>
             <RichTextEditor value={content} onChange={setContent} />
           </div>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-4">
           <div className="rounded-2xl border border-navy/10 bg-white p-5">
             <p className="mb-4 text-xs font-medium text-navy/60">Xuất bản</p>
@@ -126,7 +128,7 @@ export default function AdminPostDetailPage() {
             <p className="mb-2 font-medium text-navy/60">Thông tin</p>
             <div className="flex justify-between">
               <span>ID</span>
-              <span className="font-mono truncate ml-2">{post.id}</span>
+              <span className="ml-2 truncate font-mono">{post.id}</span>
             </div>
             <div className="flex justify-between">
               <span>Trạng thái</span>

@@ -9,7 +9,8 @@ import { Upload, X, Images } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
-const CATEGORIES = ["bàn giao", "công trình", "sản phẩm"] as const;
+const CATEGORIES = ["handover", "project", "product"] as const;
+const CATEGORY_LABEL: Record<string, string> = { handover: "bàn giao", project: "công trình", product: "sản phẩm", other: "khác" };
 type Category = (typeof CATEGORIES)[number] | "tất cả";
 
 export default function AdminGalleryPage() {
@@ -25,34 +26,16 @@ export default function AdminGalleryPage() {
     const files = await getMediaFiles();
     setItems(files);
   }
-
   useEffect(() => {
     load();
   }, []);
 
   async function addFiles(files: FileList | null) {
     if (!files) return;
-    if (USE_MOCK) {
-      const local = Array.from(files).map(
-        (f) =>
-          ({
-            id: `local-${Date.now()}-${Math.random()}`,
-            originalName: f.name,
-            filename: f.name,
-            url: URL.createObjectURL(f),
-            size: f.size,
-            mimetype: f.type,
-            category: "bàn giao",
-            createdAt: new Date().toISOString(),
-          }) as MediaFile,
-      );
-      setItems((prev) => [...prev, ...local]);
-      return;
-    }
     setUploading(true);
     try {
       const uploaded = await Promise.all(Array.from(files).map((f) => uploadMedia(f, { category: "handover" })));
-      setItems((prev) => [...prev, ...uploaded]);
+      setItems((prev) => [...uploaded, ...prev]);
     } finally {
       setUploading(false);
     }
@@ -60,12 +43,12 @@ export default function AdminGalleryPage() {
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    if (!USE_MOCK) await deleteMedia(deleteTarget.id);
+    await deleteMedia(deleteTarget.id);
     setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
     setDeleteTarget(null);
   }
 
-  const filtered = activeCategory === "tất cả" ? items : items.filter((i) => i.category === activeCategory || (activeCategory === "bàn giao" && i.category === "handover"));
+  const filtered = activeCategory === "tất cả" ? items : items.filter((i) => i.category === activeCategory);
 
   return (
     <>
@@ -105,7 +88,7 @@ export default function AdminGalleryPage() {
               activeCategory === cat ? "border-sunrise-amber bg-sunrise-amber text-navy" : "border-navy/15 text-navy/60 hover:border-navy/30",
             )}
           >
-            {cat}
+            {cat === "tất cả" ? cat : CATEGORY_LABEL[cat]}
           </button>
         ))}
       </div>
@@ -126,7 +109,7 @@ export default function AdminGalleryPage() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="group relative aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-navy-light to-navy"
               >
-                {item.url && <img src={item.url} alt={item.originalName} className="absolute inset-0 h-full w-full object-cover" />}
+                <img src={item.url} alt={item.originalName} className="absolute inset-0 h-full w-full object-cover" />
                 <div className="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-navy/70 via-transparent to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
                   <button onClick={() => setDeleteTarget(item)} className="ml-auto flex size-7 items-center justify-center rounded-full bg-red-500/90 text-white">
                     <X size={13} />
@@ -142,7 +125,7 @@ export default function AdminGalleryPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Xoá ảnh?"
-        description={`Ảnh "${deleteTarget?.originalName}" sẽ bị xoá vĩnh viễn.`}
+        description={`Ảnh "${deleteTarget?.originalName}" sẽ bị xoá vĩnh viễn khỏi Cloudinary.`}
         confirmLabel="Xoá"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
