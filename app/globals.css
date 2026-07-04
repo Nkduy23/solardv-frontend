@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html, body {
+  overscroll-behavior-y: none;
+}
+
 @theme {
   --color-navy: #0b1220;
   --color-navy-light: #1b2a4a;
@@ -16,6 +20,8 @@
   --animate-fade-up: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-drift: drift 6s ease-in-out infinite;
 }
+
+
 
 @keyframes fade-up {
   0% {
