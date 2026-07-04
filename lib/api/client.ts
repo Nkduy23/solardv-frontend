@@ -17,6 +17,20 @@ function getRefreshToken() {
 function saveToken(token: string) {
   if (typeof window !== "undefined") localStorage.setItem("solardv_access_token", token);
 }
+function clearTokens() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("solardv_access_token");
+    localStorage.removeItem("solardv_refresh_token");
+  }
+}
+
+// Chỉ redirect nếu KHÔNG đang đứng ở trang login — tránh vòng lặp reload vô hạn
+function redirectToLoginIfNeeded() {
+  clearTokens();
+  if (typeof window !== "undefined" && window.location.pathname !== "/admin/login") {
+    window.location.href = "/admin/login";
+  }
+}
 
 let isRefreshing = false;
 let queue: ((token: string) => void)[] = [];
@@ -26,14 +40,12 @@ function processQueue(token: string) {
   queue = [];
 }
 
-// Gắn access token vào mọi request
 apiClient.interceptors.request.use((config) => {
   const token = getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Tự động refresh khi 401
 apiClient.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
@@ -45,13 +57,14 @@ apiClient.interceptors.response.use(
 
     const refreshToken = getRefreshToken();
     if (!refreshToken) {
-      window.location.href = "/admin/login";
+      // Không có refresh token — có thể do chưa từng đăng nhập (bình thường ở trang login)
+      // Chỉ redirect nếu KHÔNG đang ở trang login, tránh reload vô hạn
+      redirectToLoginIfNeeded();
       return Promise.reject(error);
     }
 
     if (isRefreshing) {
-      // Đợi request đang refresh xong
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         queue.push((token) => {
           original.headers.Authorization = `Bearer ${token}`;
           resolve(apiClient(original));
@@ -71,9 +84,7 @@ apiClient.interceptors.response.use(
       return apiClient(original);
     } catch {
       queue = [];
-      localStorage.removeItem("solardv_access_token");
-      localStorage.removeItem("solardv_refresh_token");
-      window.location.href = "/admin/login";
+      redirectToLoginIfNeeded();
       return Promise.reject(error);
     } finally {
       isRefreshing = false;
