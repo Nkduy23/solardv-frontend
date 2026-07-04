@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import { getServices } from "@/lib/api/services.api";
 import { servicesMock } from "@/mocks/services.mock";

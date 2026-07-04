@@ -41,6 +41,8 @@ export async function generateStaticParams() {
     return [];
   }
 }
+export const dynamicParams = true;
+export const revalidate = 60; // tự động refresh mỗi 60 giây, không cần redeploy
 
 export default async function NewsDetailPage({ params }: { params: { slug: string } }) {
   let post;

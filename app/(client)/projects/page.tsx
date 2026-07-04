@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import { getProjects } from "@/lib/api/projects.api";
 import { projectsMock } from "@/mocks/projects.mock";

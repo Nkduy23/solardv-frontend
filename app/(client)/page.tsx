@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getServices } from "@/lib/api/services.api";
 import { getProducts } from "@/lib/api/products.api";
 import { getPosts } from "@/lib/api/posts.api";
