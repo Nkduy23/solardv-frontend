@@ -19,8 +19,20 @@ export function GallerySection({ images }: { images: GalleryImage[] }) {
   if (images.length === 0) return null;
 
   return (
-    <section className="bg-navy py-24 text-paper">
-      <Container>
+    <section className="relative overflow-hidden bg-navy py-24 text-paper">
+      {/* Blend transition — hắt màu hoàng hôn từ ParallaxBackground xuống,
+          nhạt dần thành navy. Đây là lớp DUY NHẤT xử lý vụ "cắt ngang", vì
+          bg-navy vốn là màu đặc, không có gì để mắt "trôi" qua. Đặt height
+          đủ lớn (~320px) để độ chuyển đủ mượt, không tạo viền rõ ở đáy dải
+          gradient. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-[#C9742C]/35 via-[#5B3A29]/20 to-transparent sm:h-96" />
+
+      {/* Vài hạt sáng trôi nhẹ, độc lập với scroll — nối tiếp cảm giác
+          "năng lượng toả ra" từ SolarParticles ở Hero, chỉ đặt trong vùng
+          blend phía trên để không lặp lại quá nhiều xuống cuối section. */}
+      <AmbientEmbers />
+
+      <Container className="relative">
         <ScrollReveal>
           <p className="eyebrow mb-4">Thư viện bàn giao</p>
           <h2 className="max-w-xl font-display text-3xl font-semibold sm:text-4xl">Hình ảnh công trình thực tế.</h2>
@@ -46,7 +58,7 @@ export function GallerySection({ images }: { images: GalleryImage[] }) {
         </div>
       </Container>
 
-      {/* Lightbox */}
+      {/* Lightbox — giữ nguyên không đổi */}
       <AnimatePresence>
         {lightbox && (
           <motion.div
@@ -78,5 +90,41 @@ export function GallerySection({ images }: { images: GalleryImage[] }) {
         )}
       </AnimatePresence>
     </section>
+  );
+}
+
+/**
+ * Hạt sáng trôi nhẹ, chỉ 4 hạt, giới hạn trong vùng blend phía trên section
+ * (top ~280px) — không dùng useScroll vì section này nằm ngoài track chính,
+ * chạy loop độc lập giống SolarParticles nhưng ít + mờ hơn để không "giành"
+ * sự chú ý với ảnh gallery bên dưới.
+ */
+function AmbientEmbers() {
+  const embers = [
+    { left: "15%", size: 3, duration: 10, delay: 0 },
+    { left: "42%", size: 2, duration: 13, delay: 2 },
+    { left: "68%", size: 3, duration: 11, delay: 4 },
+    { left: "88%", size: 2, duration: 14, delay: 1 },
+  ];
+
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-72 overflow-hidden">
+      {embers.map((e, i) => (
+        <motion.span
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: e.left,
+            top: "60%",
+            width: e.size,
+            height: e.size,
+            background: "rgba(245,166,35,0.7)",
+            boxShadow: "0 0 6px 2px rgba(245,166,35,0.4)",
+          }}
+          animate={{ y: ["0%", "-140%"], opacity: [0, 0.7, 0] }}
+          transition={{ duration: e.duration, delay: e.delay, repeat: Infinity, ease: "linear" }}
+        />
+      ))}
+    </div>
   );
 }

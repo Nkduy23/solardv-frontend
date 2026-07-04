@@ -17,8 +17,14 @@ export function NewsSection({ posts }: { posts: Post[] }) {
   if (posts.length === 0) return null;
 
   return (
-    <section className="bg-paper py-24">
-      <Container>
+    <section className="relative overflow-hidden bg-paper py-24">
+      {/* Blend từ navy (đáy GallerySection) sang paper — tránh chuyển tối
+          sang sáng đột ngột, vốn là kiểu ranh giới dễ "giật mắt" nhất trong
+          các cặp section liền kề của trang. NewsSection -> CtaSection thì
+          không cần blend vì cả 2 đều bg-paper, đã liền màu sẵn. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-navy/15 to-transparent sm:h-56" />
+
+      <Container className="relative">
         <ScrollReveal>
           <p className="eyebrow mb-4 text-navy/70">Tin tức</p>
           <h2 className="max-w-xl font-display text-3xl font-semibold text-navy sm:text-4xl">Kiến thức & cập nhật từ SolarDV.</h2>
