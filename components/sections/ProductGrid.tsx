@@ -16,7 +16,7 @@ export function ProductGrid({ products }: { products: Product[] }) {
           <h2 className="max-w-2xl font-display text-3xl font-semibold leading-tight sm:text-4xl">Thiết bị chính hãng, bảo hành rõ ràng.</h2>
         </ScrollReveal>
 
-        <StaggerList className="mt-14 grid grid-cols-2 lg:grid-cols-4">
+        <StaggerList className="mt-14 grid grid-cols-2 gap-2 lg:grid-cols-4">
           {products.slice(0, 6).map((product) => (
             <StaggerItem key={product.id}>
               <ProductCard product={product} />
