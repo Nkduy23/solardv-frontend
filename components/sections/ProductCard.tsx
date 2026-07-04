@@ -21,8 +21,14 @@ export function ProductCard({ product, variant = "dark" }: ProductCardProps) {
       </div>
       <div className="p-5">
         <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-sunrise-amber">{product.category}</span>
-        <h3 className={cn("mt-2 font-display text-base font-semibold", isDark ? "text-paper" : "text-navy")}>{product.name}</h3>
-        <p className={cn("mt-1 text-sm", isDark ? "text-paper/60" : "text-navy/60")}>{product.description}</p>
+
+        {/* Đã thêm class `truncate` ở đây */}
+        <h3 className={cn("mt-2 font-display text-base font-semibold truncate", isDark ? "text-paper" : "text-navy")} title={product.name}>
+          {product.name}
+        </h3>
+
+        {/* Khuyến khích thêm `line-clamp-2` cho description để card đều nhau */}
+        <p className={cn("mt-1 text-sm line-clamp-2", isDark ? "text-paper/60" : "text-navy/60")}>{product.description}</p>
       </div>
     </div>
   );
