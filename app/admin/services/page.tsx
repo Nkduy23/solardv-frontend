@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2 } from "lucide-react";
 import { usePagination } from "@/hooks/usePagination";
+import { slugify } from "@/lib/utils";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
@@ -124,7 +125,20 @@ export default function AdminServicesPage() {
               {key === "detail" || key === "summary" ? (
                 <textarea rows={3} className={inputClass + " resize-none"} placeholder={placeholder} value={(form as any)[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
               ) : (
-                <input className={inputClass} placeholder={placeholder} value={(form as any)[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
+                <input
+                  className={inputClass}
+                  placeholder={placeholder}
+                  value={(form as any)[key]}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      [key]: value,
+                      // Chỉ auto-gen slug khi đang sửa "title" VÀ slug hiện tại đang trống hoặc đang khớp bản cũ (chưa bị người dùng tự sửa tay)
+                      ...(key === "title" && (f.slug === "" || f.slug === slugify(f.title)) ? { slug: slugify(value) } : {}),
+                    }));
+                  }}
+                />
               )}
             </div>
           ))}

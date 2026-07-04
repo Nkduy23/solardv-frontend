@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2 } from "lucide-react";
+import { slugify } from "@/lib/utils";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
@@ -122,7 +123,18 @@ export default function AdminProductsPage() {
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-navy/60">Tên sản phẩm</label>
-            <input className={inputClass} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            <input
+              className={inputClass}
+              value={form.name}
+              onChange={(e) => {
+                const value = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  name: value,
+                  ...(f.slug === "" || f.slug === slugify(f.name) ? { slug: slugify(value) } : {}),
+                }));
+              }}
+            />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-navy/60">Slug</label>

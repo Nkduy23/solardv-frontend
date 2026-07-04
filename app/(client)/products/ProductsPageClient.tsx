@@ -20,7 +20,7 @@ export default function ProductsPage() {
   useEffect(() => {
     if (USE_MOCK) return;
     getProducts({ limit: 100 })
-      .then((res) => setProducts(res.data))
+      .then((res) => setProducts(res.data.map((p: any) => ({ ...p, image: p.images?.[0] ?? "" }))))
       .finally(() => setLoading(false));
   }, []);
 

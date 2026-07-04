@@ -10,7 +10,7 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, Save } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, slugify } from "@/lib/utils";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
@@ -88,7 +88,18 @@ export default function AdminPostDetailPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-navy/60">Tiêu đề</label>
-              <input className={inputClass} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+              <input
+                className={inputClass}
+                value={form.title}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    title: value,
+                    ...(f.slug === "" || f.slug === slugify(f.title) ? { slug: slugify(value) } : {}),
+                  }));
+                }}
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-navy/60">Slug</label>

@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2 } from "lucide-react";
+import { slugify } from "@/lib/utils";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
@@ -125,9 +126,27 @@ export default function AdminProjectsPage() {
             <label className="mb-1.5 block text-xs font-medium text-navy/60">Ảnh đại diện</label>
             <ImageUploader value={form.image} onChange={(url) => setForm((f) => ({ ...f, image: url }))} category="project" />
           </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-navy/60">Tên công trình</label>
+            <input
+              className={inputClass}
+              placeholder="Hệ thống áp mái..."
+              value={form.title}
+              onChange={(e) => {
+                const value = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  title: value,
+                  ...(f.slug === "" || f.slug === slugify(f.title) ? { slug: slugify(value) } : {}),
+                }));
+              }}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-navy/60">Slug</label>
+            <input className={inputClass} placeholder="he-thong-ap-mai-..." value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} />
+          </div>
           {[
-            { key: "title", label: "Tên công trình", placeholder: "Hệ thống áp mái..." },
-            { key: "slug", label: "Slug", placeholder: "he-thong-ap-mai-..." },
             { key: "location", label: "Địa điểm", placeholder: "Bình Dương" },
             { key: "capacity", label: "Công suất", placeholder: "850 kWp" },
             { key: "completedYear", label: "Năm hoàn thành", placeholder: "2025" },
