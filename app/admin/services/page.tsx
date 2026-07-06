@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2 } from "lucide-react";
 import { usePagination } from "@/hooks/usePagination";
 import { slugify } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
@@ -27,6 +28,7 @@ export default function AdminServicesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Service | null>(null);
   const [saving, setSaving] = useState(false);
   const { page, limit, meta, updateMeta, goTo } = usePagination(10);
+  const { toast } = useToast();
 
   async function load(p = page) {
     if (USE_MOCK) return;
@@ -68,6 +70,9 @@ export default function AdminServicesPage() {
         }
       }
       setModalOpen(false);
+      toast(editTarget ? "Đã cập nhật dịch vụ" : "Đã thêm dịch vụ mới", "success");
+    } catch (err: any) {
+      toast(err?.response?.data?.message ?? "Có lỗi xảy ra, vui lòng thử lại", "error");
     } finally {
       setSaving(false);
     }

@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { usePagination } from "@/hooks/usePagination";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const LIMIT = 10;
@@ -40,6 +41,7 @@ export default function AdminConsultationsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Consultation | null>(null);
   const [saving, setSaving] = useState(false);
   const { page, limit, meta, updateMeta, goTo } = usePagination(LIMIT);
+  const { toast } = useToast();
 
   async function load(p = page) {
     if (USE_MOCK) return;
@@ -60,7 +62,9 @@ export default function AdminConsultationsPage() {
       const updated = await updateConsultationStatus(id, status);
       setData((prev) => prev.map((c) => (c.id === id ? updated : c)));
       setSelected((prev) => (prev?.id === id ? updated : prev));
+      toast("Đã cập nhật trạng thái", "success");
     } else {
+      toast("Cập nhật thất bại", "success");
       setData((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
       setSelected((prev) => (prev?.id === id ? { ...prev!, status } : prev));
     }

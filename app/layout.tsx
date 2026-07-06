@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Be_Vietnam_Pro, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
+import { GoogleAnalytics } from "@next/third-parties/google";
+import { ToastProvider } from "@/hooks/useToast";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--space-grotesk" });
 const beVietnamPro = Be_Vietnam_Pro({ subsets: ["latin", "vietnamese"], weight: ["400", "500", "600"], variable: "--be-vietnam-pro" });
@@ -46,12 +48,14 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi" className={`${spaceGrotesk.variable} ${beVietnamPro.variable} ${jetbrainsMono.variable}`}>
       <body>
-        {children}
-        {/* Đặt Analytics ở cuối body để tránh làm chậm quá trình tải trang ban đầu */}
+        <ToastProvider>{children}</ToastProvider>
+        {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
         <Analytics />
       </body>
     </html>

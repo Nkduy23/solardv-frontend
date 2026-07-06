@@ -7,6 +7,7 @@ import { createConsultation } from "@/lib/api/consultations.api";
 import { consultationQuickSchema, ConsultationQuickInput } from "@/lib/validators";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -16,6 +17,7 @@ const errorInputClass = "border-red-300 focus:border-red-400";
 export function ConsultationFormQuick() {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const { toast } = useToast();
 
   const {
     register,
@@ -38,8 +40,10 @@ export function ConsultationFormQuick() {
       setStatus("success");
       reset();
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message ?? "Có lỗi xảy ra, vui lòng thử lại.");
+      const msg = err?.response?.data?.message ?? "Có lỗi xảy ra, vui lòng thử lại.";
+      setErrorMsg(msg);
       setStatus("error");
+      toast(msg, "error");
     }
   }
 

@@ -7,6 +7,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Upload, X, Images } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const CATEGORIES = ["handover", "project", "product"] as const;
@@ -20,6 +21,7 @@ export default function AdminGalleryPage() {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   async function load() {
     if (USE_MOCK) return;
@@ -36,6 +38,9 @@ export default function AdminGalleryPage() {
     try {
       const uploaded = await Promise.all(Array.from(files).map((f) => uploadMedia(f, { category: "handover" })));
       setItems((prev) => [...uploaded, ...prev]);
+      toast("Đã thêm ảnh thành công", "success");
+    } catch (err: any) {
+      toast(err?.response?.data?.message ?? "Có lỗi xảy ra, vui lòng thử lại", "error");
     } finally {
       setUploading(false);
     }

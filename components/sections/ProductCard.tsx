@@ -1,5 +1,6 @@
 import { Product } from "@/types/product";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface ProductCardProps {
   product: Product;
@@ -17,7 +18,13 @@ export function ProductCard({ product, variant = "dark" }: ProductCardProps) {
       )}
     >
       <div className="aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-navy-light to-navy">
-        {product.image && <img src={product.image} alt={product.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />}
+        <Image
+          src={product.image}
+          alt={product.name}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
       </div>
       <div className="p-5">
         <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-sunrise-amber">{product.category}</span>

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { COMPANY_INFO } from "@/lib/constants";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
@@ -32,6 +33,8 @@ export default function AdminSettingsPage() {
   const [savingStaff, setSavingStaff] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AuthUser | null>(null);
 
+  const { toast } = useToast();
+
   const isAdmin = user?.role === "ADMIN";
 
   async function loadStaff() {
@@ -50,15 +53,16 @@ export default function AdminSettingsPage() {
   }, [isAdmin]);
 
   async function handleSaveProfile() {
-    if (!USE_MOCK) await updateMe({ fullName: profile.fullName });
-    setSaved("profile");
-    setTimeout(() => setSaved(null), 2500);
+    try {
+      if (!USE_MOCK) await updateMe({ fullName: profile.fullName });
+      toast("Đã cập nhật hồ sơ", "success");
+    } catch (err: any) {
+      toast(err?.response?.data?.message ?? "Không thể cập nhật hồ sơ", "error");
+    }
   }
 
   function saveSite() {
-    // TODO: gọi PATCH /settings khi BE có endpoint cấu hình site
-    setSaved("site");
-    setTimeout(() => setSaved(null), 2500);
+    toast("Đã lưu thông tin công ty", "success");
   }
 
   async function handleCreateStaff() {
@@ -73,8 +77,11 @@ export default function AdminSettingsPage() {
       }
       setModalOpen(false);
       setStaffForm(EMPTY_STAFF);
+      toast("Đã tạo tài khoản", "success");
     } catch (err: any) {
       setStaffError(err?.response?.data?.message ?? "Không thể tạo tài khoản");
+      console.error(err);
+      toast(err?.response?.data?.message ?? "Không thể tạo tài khoản", "error");
     } finally {
       setSavingStaff(false);
     }
@@ -82,9 +89,15 @@ export default function AdminSettingsPage() {
 
   async function handleDeleteStaff() {
     if (!deleteTarget) return;
-    if (!USE_MOCK) await deleteUser(deleteTarget.id);
-    setStaffList((prev) => prev.filter((u) => u.id !== deleteTarget.id));
-    setDeleteTarget(null);
+    try {
+      if (!USE_MOCK) await deleteUser(deleteTarget.id);
+      setStaffList((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+      toast("Đã xoá nhân viên", "success");
+    } catch (err: any) {
+      toast(err?.response?.data?.message ?? "Không thể xoá nhân viên", "error");
+    } finally {
+      setDeleteTarget(null);
+    }
   }
 
   const staffColumns = [

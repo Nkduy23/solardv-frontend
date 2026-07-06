@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Pencil, Trash2, ExternalLink } from "lucide-react";
 import { cn, slugify } from "@/lib/utils";
 import Link from "next/link";
+import { useToast } from "@/hooks/useToast";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
@@ -31,6 +32,7 @@ export default function AdminPostsPage() {
   const [form, setForm] = useState(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<Post | null>(null);
   const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
   async function load() {
     if (USE_MOCK) return;
@@ -70,6 +72,9 @@ export default function AdminPostsPage() {
         }
       }
       setModalOpen(false);
+      toast(editTarget ? "Đã cập nhật bài viết" : "Đã thêm bài viết mới", "success");
+    } catch (err: any) {
+      toast(err?.response?.data?.message ?? "Có lỗi xảy ra, vui lòng thử lại", "error");
     } finally {
       setSaving(false);
     }

@@ -7,6 +7,7 @@ import { createConsultation } from "@/lib/api/consultations.api";
 import { contactFormSchema, ContactFormInput } from "@/lib/validators";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -16,6 +17,7 @@ const errorInputClass = "border-red-300 focus:border-red-400";
 export function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const { toast } = useToast();
 
   const {
     register,
@@ -39,9 +41,11 @@ export function ContactForm() {
       });
       setStatus("success");
       reset();
+      toast("Đã gửi liên hệ thành công!", "success");
     } catch (err: any) {
       setErrorMsg(err?.response?.data?.message ?? "Có lỗi xảy ra, vui lòng thử lại.");
       setStatus("error");
+      toast(err?.response?.data?.message ?? "Có lỗi xảy ra, vui lòng thử lại.", "error");
     }
   }
 
