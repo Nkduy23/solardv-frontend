@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Sản phẩm | SolarDV",
     description: "Thiết bị điện mặt trời chính hãng — tấm pin, biến tần, lưu trữ.",
-    url: "https://solardv.vn/products",
+    url: "https://www.ducvinhgreen.io.vn//products",
   },
 };
 

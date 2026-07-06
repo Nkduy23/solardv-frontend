@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       openGraph: {
         title: post.title,
         description: post.excerpt ?? undefined,
-        url: `https://solardv.vn/news/${params.slug}`,
+        url: `https://www.ducvinhgreen.io.vn//news/${params.slug}`,
       },
     };
   } catch {

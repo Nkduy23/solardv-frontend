@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Liên hệ | SolarDV",
     description: "Đăng ký tư vấn miễn phí — đội ngũ SolarDV phản hồi trong 24 giờ.",
-    url: "https://solardv.vn/contact",
+    url: "https://www.ducvinhgreen.io.vn//contact",
   },
 };
 

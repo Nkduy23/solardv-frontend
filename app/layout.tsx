@@ -19,10 +19,29 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "vi_VN",
-    url: "https://solardv.vn",
+    url: "https://www.ducvinhgreen.io.vn/",
     siteName: "SolarDV",
     title: "SolarDV — Giải pháp điện năng lượng mặt trời",
     description: "Thiết kế, thi công và vận hành hệ thống điện năng lượng mặt trời — từ khảo sát đến bảo trì dài hạn.",
+    images: [
+      {
+        url: "https://www.ducvinhgreen.io.vn/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "SolarDV — Giải pháp điện năng lượng mặt trời",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SolarDV — Giải pháp điện năng lượng mặt trời",
+    description: "Thiết kế, thi công và vận hành hệ thống điện năng lượng mặt trời.",
+    images: ["https://www.ducvinhgreen.io.vn/og-image.jpg"],
+  },
+  icons: {
+    icon: "https://www.ducvinhgreen.io.vn/favicon.ico",
+    shortcut: "https://www.ducvinhgreen.io.vn/favicon.ico",
+    apple: "https://www.ducvinhgreen.io.vn/apple-icon.png",
   },
   robots: { index: true, follow: true },
 };
@@ -30,8 +49,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi" className={`${spaceGrotesk.variable} ${beVietnamPro.variable} ${jetbrainsMono.variable}`}>
-      <Analytics />
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Đặt Analytics ở cuối body để tránh làm chậm quá trình tải trang ban đầu */}
+        <Analytics />
+      </body>
     </html>
   );
 }
