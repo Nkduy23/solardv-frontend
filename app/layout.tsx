@@ -39,8 +39,8 @@ export const metadata: Metadata = {
     images: ["https://www.ducvinhgreen.io.vn/og-image.jpg"],
   },
   icons: {
-    icon: "https://www.ducvinhgreen.io.vn/favicon.ico",
-    shortcut: "https://www.ducvinhgreen.io.vn/favicon.ico",
+    icon: "https://www.ducvinhgreen.io.vn/favicon.png",
+    shortcut: "https://www.ducvinhgreen.io.vn/favicon.png",
     apple: "https://www.ducvinhgreen.io.vn/apple-icon.png",
   },
   robots: { index: true, follow: true },
