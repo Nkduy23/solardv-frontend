@@ -2,29 +2,90 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { getUsers, createUser, deleteUser } from "@/lib/api/users.api";
-import { updateMe } from "@/lib/api/users.api";
+import { getUsers, createUser, deleteUser, updateMe } from "@/lib/api/users.api";
+import { getSettings, updateSettings } from "@/lib/api/settings.api";
+import { getBackups, runBackupNow, BackupLog } from "@/lib/api/backup.api";
 import { AuthUser } from "@/types/user";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { Modal } from "@/components/admin/Modal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
-import { COMPANY_INFO } from "@/lib/constants";
-import { Trash2 } from "lucide-react";
+import { Trash2, DatabaseBackup, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const inputClass = "w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder:text-navy/40 outline-none focus:border-sunrise-amber";
-const EMPTY_STAFF: { email: string; password: string; fullName: string; role: "ADMIN" | "STAFF" } = { email: "", password: "", fullName: "", role: "STAFF" };
+const EMPTY_STAFF: { email: string; password: string; fullName: string; role: "ADMIN" | "STAFF" } = {
+  email: "",
+  password: "",
+  fullName: "",
+  role: "STAFF",
+};
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 export default function AdminSettingsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const isAdmin = user?.role === "ADMIN";
 
+  // ── Hồ sơ cá nhân ──────────────────────────────────────────
   const [profile, setProfile] = useState({ fullName: user?.fullName ?? "" });
-  const [site, setSite] = useState({ phone: COMPANY_INFO.phone, email: COMPANY_INFO.email, address: COMPANY_INFO.address });
-  const [saved, setSaved] = useState<"profile" | "site" | "staff" | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
 
+  useEffect(() => {
+    if (user?.fullName) setProfile({ fullName: user.fullName });
+  }, [user?.fullName]);
+
+  async function handleSaveProfile() {
+    setSavingProfile(true);
+    try {
+      if (!USE_MOCK) await updateMe({ fullName: profile.fullName });
+      toast("Đã cập nhật hồ sơ", "success");
+    } catch (err: any) {
+      toast(err?.response?.data?.message ?? "Không thể cập nhật hồ sơ", "error");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  // ── Thông tin công ty (Site Settings) ─────────────────────
+  const [site, setSite] = useState({ phone: "", email: "", address: "" });
+  const [loadingSite, setLoadingSite] = useState(!USE_MOCK);
+  const [savingSite, setSavingSite] = useState(false);
+
+  useEffect(() => {
+    if (USE_MOCK) {
+      setLoadingSite(false);
+      return;
+    }
+    getSettings()
+      .then((s) => setSite({ phone: s.phone, email: s.email, address: s.address }))
+      .finally(() => setLoadingSite(false));
+  }, []);
+
+  async function handleSaveSite() {
+    setSavingSite(true);
+    try {
+      if (!USE_MOCK) await updateSettings(site);
+      toast("Đã lưu thông tin công ty", "success");
+    } catch (err: any) {
+      toast(err?.response?.data?.message ?? "Không thể lưu thông tin công ty", "error");
+    } finally {
+      setSavingSite(false);
+    }
+  }
+
+  // ── Quản lý Staff ──────────────────────────────────────────
   const [staffList, setStaffList] = useState<AuthUser[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(!USE_MOCK);
   const [modalOpen, setModalOpen] = useState(false);
@@ -32,10 +93,6 @@ export default function AdminSettingsPage() {
   const [staffError, setStaffError] = useState("");
   const [savingStaff, setSavingStaff] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AuthUser | null>(null);
-
-  const { toast } = useToast();
-
-  const isAdmin = user?.role === "ADMIN";
 
   async function loadStaff() {
     if (USE_MOCK || !isAdmin) return;
@@ -47,23 +104,9 @@ export default function AdminSettingsPage() {
       setLoadingStaff(false);
     }
   }
-
   useEffect(() => {
     loadStaff();
   }, [isAdmin]);
-
-  async function handleSaveProfile() {
-    try {
-      if (!USE_MOCK) await updateMe({ fullName: profile.fullName });
-      toast("Đã cập nhật hồ sơ", "success");
-    } catch (err: any) {
-      toast(err?.response?.data?.message ?? "Không thể cập nhật hồ sơ", "error");
-    }
-  }
-
-  function saveSite() {
-    toast("Đã lưu thông tin công ty", "success");
-  }
 
   async function handleCreateStaff() {
     setStaffError("");
@@ -79,9 +122,9 @@ export default function AdminSettingsPage() {
       setStaffForm(EMPTY_STAFF);
       toast("Đã tạo tài khoản", "success");
     } catch (err: any) {
-      setStaffError(err?.response?.data?.message ?? "Không thể tạo tài khoản");
-      console.error(err);
-      toast(err?.response?.data?.message ?? "Không thể tạo tài khoản", "error");
+      const msg = err?.response?.data?.message ?? "Không thể tạo tài khoản";
+      setStaffError(msg);
+      toast(msg, "error");
     } finally {
       setSavingStaff(false);
     }
@@ -126,6 +169,38 @@ export default function AdminSettingsPage() {
     },
   ];
 
+  // ── Backup dữ liệu ─────────────────────────────────────────
+  const [backups, setBackups] = useState<BackupLog[]>([]);
+  const [loadingBackups, setLoadingBackups] = useState(!USE_MOCK);
+  const [runningBackup, setRunningBackup] = useState(false);
+
+  async function loadBackups() {
+    if (USE_MOCK || !isAdmin) return;
+    setLoadingBackups(true);
+    try {
+      const list = await getBackups();
+      setBackups(list);
+    } finally {
+      setLoadingBackups(false);
+    }
+  }
+  useEffect(() => {
+    loadBackups();
+  }, [isAdmin]);
+
+  async function handleRunBackup() {
+    setRunningBackup(true);
+    try {
+      const log = await runBackupNow();
+      setBackups((prev) => [log, ...prev]);
+      toast("Đã sao lưu dữ liệu thành công", "success");
+    } catch (err: any) {
+      toast(err?.response?.data?.message ?? "Sao lưu thất bại", "error");
+    } finally {
+      setRunningBackup(false);
+    }
+  }
+
   return (
     <>
       <AdminPageHeader title="Cài đặt" description="Thông tin tài khoản & cấu hình website" />
@@ -144,11 +219,10 @@ export default function AdminSettingsPage() {
               <input className={inputClass} value={user?.email ?? ""} disabled />
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-3">
-            <Button variant="primary" className="px-5" onClick={handleSaveProfile}>
-              Lưu thay đổi
+          <div className="mt-4">
+            <Button variant="primary" className="px-5" onClick={handleSaveProfile} disabled={savingProfile}>
+              {savingProfile ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
-            {saved === "profile" && <p className="text-xs text-emerald-600">Đã lưu!</p>}
           </div>
         </div>
 
@@ -172,31 +246,82 @@ export default function AdminSettingsPage() {
           </div>
         )}
 
-        {/* Thông tin công ty */}
+        {/* Thông tin công ty — giờ đã lưu thật xuống DB qua PATCH /settings */}
         <div className="rounded-2xl border border-navy/10 bg-white p-6">
           <p className="mb-1 font-display text-sm font-semibold text-navy">Thông tin liên hệ công ty</p>
           <p className="mb-5 text-xs text-navy/50">Hiển thị trên trang Contact và Footer của website.</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-navy/60">Điện thoại</label>
-              <input className={inputClass} value={site.phone} onChange={(e) => setSite((s) => ({ ...s, phone: e.target.value }))} />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-navy/60">Email</label>
-              <input className={inputClass} value={site.email} onChange={(e) => setSite((s) => ({ ...s, email: e.target.value }))} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium text-navy/60">Địa chỉ</label>
-              <input className={inputClass} value={site.address} onChange={(e) => setSite((s) => ({ ...s, address: e.target.value }))} />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center gap-3">
-            <Button variant="primary" className="px-5" onClick={saveSite}>
-              Lưu thay đổi
-            </Button>
-            {saved === "site" && <p className="text-xs text-emerald-600">Đã lưu!</p>}
-          </div>
+          {loadingSite ? (
+            <div className="h-32 animate-pulse rounded-2xl bg-navy/5" />
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-navy/60">Điện thoại</label>
+                  <input className={inputClass} value={site.phone} onChange={(e) => setSite((s) => ({ ...s, phone: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-navy/60">Email</label>
+                  <input className={inputClass} value={site.email} onChange={(e) => setSite((s) => ({ ...s, email: e.target.value }))} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="mb-1.5 block text-xs font-medium text-navy/60">Địa chỉ</label>
+                  <input className={inputClass} value={site.address} onChange={(e) => setSite((s) => ({ ...s, address: e.target.value }))} />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Button variant="primary" className="px-5" onClick={handleSaveSite} disabled={savingSite}>
+                  {savingSite ? "Đang lưu..." : "Lưu thay đổi"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Sao lưu dữ liệu — chỉ Admin thấy */}
+        {isAdmin && (
+          <div className="rounded-2xl border border-navy/10 bg-white p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <p className="font-display text-sm font-semibold text-navy">Sao lưu dữ liệu</p>
+                <p className="mt-1 text-xs text-navy/50">Tự động sao lưu mỗi ngày lúc 2:00 sáng, giữ 14 bản gần nhất</p>
+              </div>
+              <Button variant="secondary" className="px-4 text-xs" onClick={handleRunBackup} disabled={runningBackup}>
+                <DatabaseBackup size={14} /> {runningBackup ? "Đang sao lưu..." : "Sao lưu ngay"}
+              </Button>
+            </div>
+
+            {loadingBackups ? (
+              <div className="h-32 animate-pulse rounded-2xl bg-navy/5" />
+            ) : backups.length === 0 ? (
+              <p className="py-8 text-center text-sm text-navy/40">Chưa có bản sao lưu nào</p>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-navy/10">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-navy/10 bg-navy/[0.02]">
+                      <th className="px-4 py-2.5 text-xs font-medium text-navy/50">Thời gian</th>
+                      <th className="px-4 py-2.5 text-xs font-medium text-navy/50">Dung lượng</th>
+                      <th className="px-4 py-2.5 text-xs font-medium text-navy/50"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {backups.map((b) => (
+                      <tr key={b.id} className="border-b border-navy/5 last:border-0">
+                        <td className="px-4 py-2.5 text-navy">{formatDateTime(b.createdAt)}</td>
+                        <td className="px-4 py-2.5 text-navy/60">{formatBytes(b.sizeBytes)}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-sunrise-copper hover:underline">
+                            <Download size={13} /> Tải xuống
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modal tạo Staff */}

@@ -11,8 +11,9 @@ import { Modal } from "@/components/admin/Modal";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { usePagination } from "@/hooks/usePagination";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
+import { cn } from "@/lib/utils";
+import { FileSpreadsheet } from "lucide-react";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const LIMIT = 10;
@@ -35,13 +36,13 @@ function formatDate(iso: string) {
 }
 
 export default function AdminConsultationsPage() {
+  const { toast } = useToast();
   const [data, setData] = useState<Consultation[]>(USE_MOCK ? consultationsMock : []);
   const [loading, setLoading] = useState(!USE_MOCK);
   const [selected, setSelected] = useState<Consultation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Consultation | null>(null);
   const [saving, setSaving] = useState(false);
   const { page, limit, meta, updateMeta, goTo } = usePagination(LIMIT);
-  const { toast } = useToast();
 
   async function load(p = page) {
     if (USE_MOCK) return;
@@ -51,33 +52,46 @@ export default function AdminConsultationsPage() {
     updateMeta(res.meta);
     setLoading(false);
   }
-
   useEffect(() => {
     load();
   }, [page]);
 
   async function handleUpdateStatus(id: string, status: ConsultationStatus) {
     setSaving(true);
-    if (!USE_MOCK) {
-      const updated = await updateConsultationStatus(id, status);
-      setData((prev) => prev.map((c) => (c.id === id ? updated : c)));
-      setSelected((prev) => (prev?.id === id ? updated : prev));
+    try {
+      if (!USE_MOCK) {
+        const updated = await updateConsultationStatus(id, status);
+        setData((prev) => prev.map((c) => (c.id === id ? updated : c)));
+        setSelected((prev) => (prev?.id === id ? updated : prev));
+      } else {
+        setData((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
+        setSelected((prev) => (prev?.id === id ? { ...prev!, status } : prev));
+      }
       toast("Đã cập nhật trạng thái", "success");
-    } else {
-      toast("Cập nhật thất bại", "success");
-      setData((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
-      setSelected((prev) => (prev?.id === id ? { ...prev!, status } : prev));
+    } catch (err: any) {
+      toast(err?.response?.data?.message ?? "Không thể cập nhật trạng thái", "error");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    if (!USE_MOCK) await deleteConsultation(deleteTarget.id);
-    setData((prev) => prev.filter((c) => c.id !== deleteTarget.id));
-    updateMeta({ ...meta, total: meta.total - 1 });
-    setDeleteTarget(null);
+    try {
+      if (!USE_MOCK) await deleteConsultation(deleteTarget.id);
+      setData((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      updateMeta({ ...meta, total: meta.total - 1 });
+      toast("Đã xoá đăng ký", "success");
+    } catch (err: any) {
+      toast(err?.response?.data?.message ?? "Không thể xoá đăng ký", "error");
+    } finally {
+      setDeleteTarget(null);
+    }
   }
+
+  // Tải file Excel — điều hướng trực tiếp bằng thẻ <a>, trình duyệt tự đính
+  // kèm cookie httpOnly cho request này (không cần fetch/JS xử lý blob thủ công)
+  const exportUrl = `${process.env.NEXT_PUBLIC_API_URL}/consultations/export`;
 
   const columns = [
     { key: "fullName", header: "Khách hàng", render: (c: Consultation) => <p className="font-medium text-navy">{c.fullName}</p> },
@@ -93,7 +107,7 @@ export default function AdminConsultationsPage() {
       key: "actions",
       header: "",
       render: (c: Consultation) => (
-        <div className="flex justify-end gap-2">
+        <div className="flex gap-2">
           <Button variant="ghost" className="text-xs" onClick={() => setSelected(c)}>
             Chi tiết
           </Button>
@@ -107,7 +121,18 @@ export default function AdminConsultationsPage() {
 
   return (
     <>
-      <AdminPageHeader title="Đăng ký tư vấn" description={loading ? "Đang tải..." : `${USE_MOCK ? data.filter((c) => c.status === "NEW").length : meta.total} kết quả`} />
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-display text-xl font-semibold text-navy">Đăng ký tư vấn</h2>
+          <p className="mt-1 text-sm text-navy/50">{loading ? "Đang tải..." : `${meta.total} kết quả`}</p>
+        </div>
+        <a href={exportUrl} download>
+          <Button variant="secondary">
+            <FileSpreadsheet size={15} /> Xuất Excel
+          </Button>
+        </a>
+      </div>
+
       {loading ? (
         <div className="h-64 animate-pulse rounded-2xl bg-navy/5" />
       ) : (
